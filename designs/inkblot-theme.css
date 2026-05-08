@@ -1,0 +1,70 @@
+/* Shared Inkblot theme — used by Lobby / Game Room / Admin pages */
+html, body { background: #FBF6EC; color: #1B1830; }
+body { font-family: 'Inter', system-ui, sans-serif; }
+.font-display { font-family: 'Fredoka', system-ui, sans-serif; }
+.font-hand { font-family: 'Caveat', cursive; }
+
+.paper-grain {
+  background-color: #FBF6EC;
+  background-image:
+    radial-gradient(rgba(27,24,48,0.035) 1px, transparent 1px),
+    radial-gradient(rgba(27,24,48,0.025) 1px, transparent 1px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 1px 1px;
+}
+
+.glass {
+  background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.5));
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.65);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 30px 60px -20px rgba(31,27,92,0.22),
+    0 8px 24px -10px rgba(31,27,92,0.18);
+}
+
+.squiggle-underline { position: relative; display: inline-block; }
+.squiggle-underline::after {
+  content: ''; position: absolute; left: -4%; right: -4%; bottom: -10px; height: 14px;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14' preserveAspectRatio='none'><path d='M2 8 Q 25 1 50 7 T 100 7 T 150 7 T 198 7' fill='none' stroke='%23F59E0B' stroke-width='4' stroke-linecap='round'/></svg>") center/100% 100% no-repeat;
+}
+
+.paint-stroke {
+  background: linear-gradient(90deg, transparent 0%, #FCD34D 18%, #FCD34D 80%, transparent 100%);
+  transform: skewX(-6deg) translateY(2px);
+  border-radius: 999px;
+}
+
+.dashed-frame {
+  background-image: repeating-linear-gradient(0deg, #1B1830 0 6px, transparent 6px 12px),
+                    repeating-linear-gradient(90deg, #1B1830 0 6px, transparent 6px 12px),
+                    repeating-linear-gradient(180deg, #1B1830 0 6px, transparent 6px 12px),
+                    repeating-linear-gradient(270deg, #1B1830 0 6px, transparent 6px 12px);
+  background-size: 1.5px 100%, 100% 1.5px, 1.5px 100%, 100% 1.5px;
+  background-position: 0 0, 0 0, 100% 0, 0 100%;
+  background-repeat: no-repeat;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+.blink { animation: blink 1s steps(1) infinite; }
+
+@keyframes floatA { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(-12px) rotate(calc(var(--r,0deg) + 6deg)); } }
+@keyframes floatB { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(10px) rotate(calc(var(--r,0deg) - 5deg)); } }
+.float-a { animation: floatA var(--dur,14s) ease-in-out infinite; animation-delay: var(--dly,0s); }
+.float-b { animation: floatB var(--dur,14s) ease-in-out infinite; animation-delay: var(--dly,0s); }
+
+@keyframes pulseRing {
+  0% { transform: scale(.95); opacity: .55; }
+  70% { transform: scale(1.4); opacity: 0; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+.pulse-ring { animation: pulseRing 2s cubic-bezier(.3,.6,.4,1) infinite; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(27,24,48,0.18); border-radius: 8px; }
+::selection { background: #F59E0B; color: #1B1830; }
+
+.tw-config-base {} /* marker */
+
+/* Tailwind extension is per-page (config inline in each file) */

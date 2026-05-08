@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Inkblot — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="inkblot-theme.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      fontFamily: {
+        display: ['Fredoka', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        hand: ['Caveat', 'cursive'],
+      },
+      colors: {
+        paper: { DEFAULT:'#FBF6EC', deep:'#F4ECDA', dark:'#E8DEC6' },
+        ink:   { DEFAULT:'#1B1830', soft:'#2A2545', mute:'#5A5275' },
+        indigo:{ brand:'#312E81', deep:'#1F1B5C' },
+        amber: { brand:'#F59E0B', soft:'#FCD34D' },
+        rose:  { splat:'#EC4899' },
+        mint:  { splat:'#10B981' },
+      },
+    } },
+  };
+</script>
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm"></script>
+<script src="https://unpkg.com/framer-motion@10.18.0/dist/framer-motion.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin></script>
+</head>
+<body class="paper-grain min-h-screen overflow-x-hidden">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo } = React;
+const { motion, AnimatePresence, LayoutGroup } = window.Motion;
+
+const Icon = ({ d, size=20, stroke=2, className='' }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" className={className}>{d}</svg>
+);
+const I = {
+  Users:  (p)=> <Icon {...p} d={<><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 11a3.5 3.5 0 1 0 0-7"/><path d="M22 20a6.5 6.5 0 0 0-5-6.3"/></>}/>,
+  Book:   (p)=> <Icon {...p} d={<><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5a2.5 2.5 0 0 0 0 5H20"/><path d="M4 4.5v18"/></>}/>,
+  Door:   (p)=> <Icon {...p} d={<><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="15" cy="12" r="1" fill="currentColor"/></>}/>,
+  Flag:   (p)=> <Icon {...p} d={<><path d="M4 22V4"/><path d="M4 4h12l-2 5 2 5H4"/></>}/>,
+  Cog:    (p)=> <Icon {...p} d={<><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2.1-1.6-2-3.5-2.5.8a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.3a7 7 0 0 0-2 1.2l-2.5-.8-2 3.5L5.1 10.8A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.2L3 14.8l2 3.5 2.5-.8a7 7 0 0 0 2 1.2L10 21h4l.5-2.3a7 7 0 0 0 2-1.2l2.5.8 2-3.5-2.1-1.6c.1-.4.1-.8.1-1.2Z"/></>}/>,
+  Search: (p)=> <Icon {...p} d={<><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></>}/>,
+  Plus:   (p)=> <Icon {...p} d={<><path d="M12 5v14"/><path d="M5 12h14"/></>}/>,
+  More:   (p)=> <Icon {...p} d={<><circle cx="12" cy="6" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="18" r="1.5" fill="currentColor"/></>}/>,
+  X:      (p)=> <Icon {...p} d={<><path d="m6 6 12 12"/><path d="m18 6-12 12"/></>}/>,
+  TrendUp:(p)=> <Icon {...p} d={<><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></>}/>,
+  Bell:   (p)=> <Icon {...p} d={<><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></>}/>,
+  Filter: (p)=> <Icon {...p} d={<path d="M3 5h18l-7 9v6l-4-2v-4Z"/>}/>,
+  Down:   (p)=> <Icon {...p} d={<path d="m6 9 6 6 6-6"/>}/>,
+  Lightbulb:(p)=> <Icon {...p} d={<><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12c1 1 1 2 1 4h6c0-2 0-3 1-4a7 7 0 0 0-4-12Z"/></>}/>,
+};
+
+/* ─── Sidebar ─────────────────────────────────────────────────────── */
+const Sidebar = ({ active, setActive }) => {
+  const items = [
+    { id:'Users',     Ic:I.Users,   count:'1,284' },
+    { id:'Word Bank', Ic:I.Book,    count:'3,742' },
+    { id:'Rooms',     Ic:I.Door,    count:'184' },
+    { id:'Reports',   Ic:I.Flag,    count:'7',  alert:true },
+    { id:'Settings',  Ic:I.Cog,     count:''  },
+  ];
+  return (
+    <aside className="glass rounded-3xl p-4 sticky top-4 self-start">
+      <a href="Inkblot - Lobby.html" className="flex items-center gap-2 mb-6 px-2 group">
+        <div className="relative w-9 h-9 rounded-xl bg-indigo-brand flex items-center justify-center shadow-[0_5px_0_-2px_#1F1B5C] -rotate-6 group-hover:rotate-0 transition-transform">
+          <span className="font-display font-bold text-paper text-xl leading-none">i</span>
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-brand"></span>
+        </div>
+        <div className="flex flex-col leading-none">
+          <span className="font-display font-bold text-ink text-lg tracking-tight">inkblot</span>
+          <span className="font-hand text-rose-splat text-[13px] -mt-0.5">studio · admin</span>
+        </div>
+      </a>
+
+      <nav className="space-y-1">
+        {items.map(it => (
+          <button key={it.id} onClick={()=>setActive(it.id)}
+            className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors
+              ${active === it.id
+                ? 'bg-ink text-paper shadow-[0_3px_0_-1px_#000]'
+                : 'text-ink-soft hover:bg-white/70'}`}>
+            <it.Ic size={16}/>
+            <span className="flex-1 text-left">{it.id}</span>
+            {it.count && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full
+                ${active===it.id ? 'bg-paper/20 text-paper' : 'bg-ink/8 text-ink-mute'}`}>{it.count}</span>
+            )}
+            {it.alert && <span className="absolute right-1.5 top-1.5 w-2 h-2 rounded-full bg-rose-splat ring-2 ring-paper"></span>}
+          </button>
+        ))}
+      </nav>
+
+      <div className="mt-6 p-4 rounded-2xl bg-amber-soft/40 border border-amber-brand/30 relative overflow-hidden">
+        <I.Lightbulb size={28} className="absolute -bottom-2 -right-2 text-amber-brand opacity-50"/>
+        <p className="font-hand text-amber-brand text-xl leading-none mb-1">heads up —</p>
+        <p className="text-[12px] text-ink-soft leading-snug">Word bank refresh runs every Sunday at 03:00 UTC.</p>
+      </div>
+
+      <a href="Inkblot - Lobby.html" className="mt-4 flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-ink-mute hover:text-ink rounded-xl">
+        ← back to lobby
+      </a>
+    </aside>
+  );
+};
+
+/* ─── Top bar ─────────────────────────────────────────────────────── */
+const TopBar = () => (
+  <div className="flex items-center justify-between gap-4 mb-6">
+    <div>
+      <p className="font-hand text-amber-brand text-2xl leading-none -mb-1">studio dashboard —</p>
+      <h1 className="font-display font-bold text-ink text-3xl tracking-tight">Manage the sketchbook.</h1>
+    </div>
+    <div className="flex items-center gap-3">
+      <div className="hidden md:flex items-center gap-2 bg-white/70 border border-ink/10 rounded-xl px-3 py-2 w-72">
+        <I.Search size={16} className="text-ink-mute"/>
+        <input placeholder="Search users, words, rooms…"
+          className="flex-1 bg-transparent outline-none text-sm placeholder:text-ink-mute"/>
+        <kbd className="text-[10px] font-bold bg-ink/8 text-ink-mute px-1.5 py-0.5 rounded">⌘K</kbd>
+      </div>
+      <button className="relative w-10 h-10 rounded-xl bg-white/70 border border-ink/10 flex items-center justify-center text-ink-soft hover:text-ink">
+        <I.Bell size={16}/>
+        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-rose-splat rounded-full ring-2 ring-paper"></span>
+      </button>
+      <div className="flex items-center gap-2 bg-white/70 border border-ink/10 rounded-xl pl-1 pr-3 py-1">
+        <div className="w-8 h-8 rounded-lg bg-rose-splat text-paper font-display font-bold flex items-center justify-center text-sm">A</div>
+        <div className="flex flex-col leading-tight">
+          <span className="text-[12px] font-semibold text-ink">@admin</span>
+          <span className="text-[10px] text-ink-mute">Studio owner</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+/* ─── Stat tiles ──────────────────────────────────────────────────── */
+const Stats = () => {
+  const tiles = [
+    { label:'Daily players',  value:'12,431', delta:'+8.2%', tone:'mint' },
+    { label:'Rooms / hour',   value:'847',    delta:'+12%',  tone:'amber' },
+    { label:'Reports open',   value:'7',      delta:'-2',    tone:'rose' },
+    { label:'Avg. round',     value:'1m 12s', delta:'steady',tone:'indigo' },
+  ];
+  const toneCls = {
+    mint:  'bg-mint-splat/15 text-mint-splat border-mint-splat/25',
+    amber: 'bg-amber-brand/15 text-amber-brand border-amber-brand/25',
+    rose:  'bg-rose-splat/15 text-rose-splat border-rose-splat/25',
+    indigo:'bg-indigo-brand/10 text-indigo-brand border-indigo-brand/20',
+  };
+  return (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {tiles.map((t,i)=>(
+        <motion.div key={t.label}
+          initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }}
+          transition={{ delay: 0.05*i }}
+          className="glass rounded-2xl p-4 relative overflow-hidden">
+          <div className={`inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${toneCls[t.tone]}`}>
+            <I.TrendUp size={11}/> {t.delta}
+          </div>
+          <p className="text-[11px] text-ink-mute uppercase tracking-wider font-semibold mt-3">{t.label}</p>
+          <p className="font-display font-bold text-ink text-3xl tabular-nums mt-1">{t.value}</p>
+        </motion.div>
+      ))}
+    </div>
+  );
+};
+
+/* ─── Users table ─────────────────────────────────────────────────── */
+const ROLES = {
+  owner:  { label:'Owner',     cls:'bg-rose-splat/15 text-rose-splat border-rose-splat/30' },
+  mod:    { label:'Mod',       cls:'bg-indigo-brand/15 text-indigo-brand border-indigo-brand/30' },
+  artist: { label:'Artist',    cls:'bg-amber-brand/20 text-amber-brand border-amber-brand/40' },
+  member: { label:'Member',    cls:'bg-ink/8 text-ink-soft border-ink/15' },
+  banned: { label:'Banned',    cls:'bg-ink/80 text-paper border-ink' },
+};
+
+const initialUsers = [
+  { id:1, name:'@huxley',  email:'huxley@inkblot.io', role:'mod',    status:true,  last:'2m',  joined:'Mar 12, 2025', games:421, color:'#F59E0B' },
+  { id:2, name:'@nori',    email:'nori@inkblot.io',   role:'artist', status:true,  last:'8m',  joined:'Apr 03, 2025', games:289, color:'#10B981' },
+  { id:3, name:'@buns',    email:'buns@bake.co',      role:'member', status:true,  last:'24m', joined:'May 17, 2025', games:142, color:'#EC4899' },
+  { id:4, name:'@toko',    email:'toko@inkblot.io',   role:'member', status:false, last:'2d',  joined:'Jun 02, 2025', games:78,  color:'#7C3AED' },
+  { id:5, name:'@vivi',    email:'vivi@studio.art',   role:'artist', status:true,  last:'5m',  joined:'Jul 28, 2025', games:512, color:'#9D174D' },
+  { id:6, name:'@kep',     email:'kep@kep.kep',       role:'member', status:true,  last:'1h',  joined:'Aug 14, 2025', games:33,  color:'#0EA5E9' },
+  { id:7, name:'@odd',     email:'odd@odd.io',        role:'banned', status:false, last:'7d',  joined:'Sep 01, 2025', games:9,   color:'#D97706' },
+  { id:8, name:'@maple',   email:'maple@inkblot.io',  role:'owner',  status:true,  last:'now', joined:'Jan 02, 2025', games:1240,color:'#312E81' },
+];
+
+const Toggle = ({ on, onChange }) => (
+  <button onClick={onChange}
+    className={`relative inline-flex w-11 h-6 rounded-full transition-colors ${on ? 'bg-mint-splat' : 'bg-ink/15'}`}>
+    <motion.span layout
+      transition={{ type:'spring', stiffness:500, damping:32 }}
+      className={`absolute top-0.5 ${on ? 'left-[calc(100%-1.375rem)]' : 'left-0.5'} w-5 h-5 rounded-full bg-white shadow`}/>
+  </button>
+);
+
+const RoleBadge = ({ role }) => (
+  <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border ${ROLES[role].cls}`}>
+    {role === 'owner' && <span className="text-amber-brand">★</span>}
+    {ROLES[role].label}
+  </span>
+);
+
+const UsersTable = () => {
+  const [users, setUsers] = useState(initialUsers);
+  const [filter, setFilter] = useState('All');
+  const filters = ['All', 'Owner', 'Mod', 'Artist', 'Member', 'Banned'];
+
+  const filtered = useMemo(()=>{
+    if (filter === 'All') return users;
+    return users.filter(u => ROLES[u.role].label === filter);
+  }, [users, filter]);
+
+  const toggleStatus = (id) => setUsers(us => us.map(u => u.id===id ? {...u, status: !u.status} : u));
+  const setRole = (id, role) => setUsers(us => us.map(u => u.id===id ? {...u, role} : u));
+
+  return (
+    <section className="glass rounded-3xl p-5 sm:p-6 mb-6">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+        <div>
+          <h2 className="font-display font-bold text-ink text-2xl">User Management</h2>
+          <p className="text-[13px] text-ink-mute">{filtered.length} of {users.length} accounts shown</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-paper-deep/70 rounded-xl p-1">
+            {filters.map(f => (
+              <button key={f} onClick={()=>setFilter(f)}
+                className={`px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors
+                  ${filter===f ? 'bg-ink text-paper' : 'text-ink-soft hover:bg-white'}`}>{f}</button>
+            ))}
+          </div>
+          <button className="inline-flex items-center gap-1.5 bg-indigo-brand text-paper px-3.5 py-2 rounded-xl text-sm font-semibold shadow-[0_3px_0_-1px_#1F1B5C]">
+            <I.Plus size={14}/> Invite
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto -mx-2 px-2">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead>
+            <tr className="text-[11px] uppercase tracking-wider text-ink-mute font-bold text-left">
+              <th className="pb-3 pl-2">User</th>
+              <th className="pb-3">Role</th>
+              <th className="pb-3">Status</th>
+              <th className="pb-3">Games</th>
+              <th className="pb-3">Last seen</th>
+              <th className="pb-3">Joined</th>
+              <th className="pb-3 pr-2"></th>
+            </tr>
+          </thead>
+          <LayoutGroup>
+            <tbody>
+              {filtered.map((u)=>(
+                <motion.tr key={u.id} layout
+                  className="border-t border-ink/5 hover:bg-white/40 transition-colors">
+                  <td className="py-3 pl-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg font-display font-bold text-paper flex items-center justify-center text-sm shrink-0"
+                           style={{ background: u.color }}>{u.name[1].toUpperCase()}</div>
+                      <div className="leading-tight min-w-0">
+                        <div className="font-semibold text-ink">{u.name}</div>
+                        <div className="text-[12px] text-ink-mute truncate">{u.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3">
+                    <select value={u.role} onChange={(e)=>setRole(u.id, e.target.value)}
+                      className="bg-transparent border-0 text-[12px] font-bold cursor-pointer focus:outline-none p-0">
+                      {Object.keys(ROLES).map(r => <option key={r} value={r}>{ROLES[r].label}</option>)}
+                    </select>
+                    <div className="-mt-5 pointer-events-none"><RoleBadge role={u.role}/></div>
+                  </td>
+                  <td className="py-3">
+                    <div className="flex items-center gap-2">
+                      <Toggle on={u.status} onChange={()=>toggleStatus(u.id)}/>
+                      <span className={`text-[12px] font-semibold ${u.status ? 'text-mint-splat' : 'text-ink-mute'}`}>
+                        {u.status ? 'active' : 'paused'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-3 font-display font-semibold text-ink tabular-nums">{u.games}</td>
+                  <td className="py-3 text-ink-mute">{u.last}</td>
+                  <td className="py-3 text-ink-mute text-[12px]">{u.joined}</td>
+                  <td className="py-3 pr-2">
+                    <button className="p-1.5 rounded-lg text-ink-mute hover:bg-ink/5 hover:text-ink"><I.More size={16}/></button>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </LayoutGroup>
+        </table>
+      </div>
+    </section>
+  );
+};
+
+/* ─── Word Bank ───────────────────────────────────────────────────── */
+const initialBank = {
+  Easy:    ['cat','tree','sun','book','apple','car','house','star','fish','hat'],
+  Medium:  ['volcano','submarine','wizard','penguin','astronaut','dragon','spaghetti','tornado'],
+  Hard:    ['paradox','metaphor','accordion','silhouette','helicopter','existentialism'],
+  Custom:  ['haunted toaster','rocket cat','disco banana'],
+};
+
+const WordBank = () => {
+  const [bank, setBank] = useState(initialBank);
+  const [tab, setTab] = useState('Easy');
+  const [draft, setDraft] = useState('');
+
+  const addWord = (e) => {
+    e.preventDefault();
+    const w = draft.trim().toLowerCase();
+    if (!w) return;
+    setBank(b => ({...b, [tab]: [w, ...b[tab]]}));
+    setDraft('');
+  };
+  const removeWord = (w) => setBank(b => ({...b, [tab]: b[tab].filter(x => x !== w)}));
+
+  const stats = {
+    Easy:    { color:'mint-splat',   desc:'4–6 letters, common nouns'  },
+    Medium:  { color:'amber-brand',  desc:'7–10 letters, themed'        },
+    Hard:    { color:'indigo-brand', desc:'10+ letters, abstract'       },
+    Custom:  { color:'rose-splat',   desc:'community submissions'        },
+  };
+
+  return (
+    <section className="glass rounded-3xl p-5 sm:p-6">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+        <div>
+          <h2 className="font-display font-bold text-ink text-2xl">Word Bank</h2>
+          <p className="text-[13px] text-ink-mute">Words pulled at round start — toggle a category to enable.</p>
+        </div>
+        <div className="flex items-center gap-2 text-[12px] text-ink-mute">
+          <I.Filter size={14}/> Auto-mix enabled · <span className="font-semibold text-ink">3,742</span> total
+        </div>
+      </div>
+
+      {/* Category tabs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        {Object.keys(bank).map(k => (
+          <button key={k} onClick={()=>setTab(k)}
+            className={`text-left p-3 rounded-2xl border-2 transition-all
+              ${tab===k ? 'bg-white border-ink shadow-[0_4px_0_-1px_#1B1830]'
+                       : 'bg-white/40 border-transparent hover:bg-white/70'}`}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-display font-bold text-ink">{k}</span>
+              <span className={`w-2.5 h-2.5 rounded-full bg-${stats[k].color}`}></span>
+            </div>
+            <p className="text-[11px] text-ink-mute leading-tight">{stats[k].desc}</p>
+            <p className="font-display font-bold text-ink text-lg tabular-nums mt-1.5">{bank[k].length}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Add word */}
+      <form onSubmit={addWord} className="flex items-center gap-2 mb-4">
+        <input value={draft} onChange={(e)=>setDraft(e.target.value)}
+          placeholder={`Add a ${tab.toLowerCase()} word…`}
+          className="flex-1 bg-white/80 border border-ink/10 rounded-xl px-4 py-2.5 outline-none focus:border-indigo-brand focus:ring-2 focus:ring-indigo-brand/20 text-sm"/>
+        <motion.button whileTap={{ scale:0.96 }}
+          className="inline-flex items-center gap-1.5 bg-ink text-paper px-4 py-2.5 rounded-xl text-sm font-semibold shadow-[0_3px_0_-1px_#000]">
+          <I.Plus size={14}/> Add to {tab}
+        </motion.button>
+      </form>
+
+      {/* Word chips */}
+      <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto pr-1">
+        <AnimatePresence>
+          {bank[tab].map(w => (
+            <motion.span key={w}
+              layout
+              initial={{ opacity:0, scale:0.7 }}
+              animate={{ opacity:1, scale:1 }}
+              exit={{ opacity:0, scale:0.7 }}
+              className="group inline-flex items-center gap-1.5 bg-white/70 hover:bg-white border border-ink/10 rounded-full pl-3 pr-1 py-1.5 text-sm font-semibold text-ink">
+              {w}
+              <button onClick={()=>removeWord(w)}
+                className="w-5 h-5 rounded-full bg-ink/5 hover:bg-rose-splat hover:text-paper text-ink-mute flex items-center justify-center transition-colors">
+                <I.X size={11} stroke={2.5}/>
+              </button>
+            </motion.span>
+          ))}
+        </AnimatePresence>
+      </div>
+    </section>
+  );
+};
+
+/* ─── Page ──────────────────────────────────────────────────────── */
+function Admin() {
+  const [active, setActive] = useState('Users');
+  return (
+    <div className="relative min-h-screen w-full">
+      <main className="relative z-10 max-w-[1400px] mx-auto px-4 lg:px-6 py-4">
+        <div className="grid lg:grid-cols-[240px_minmax(0,1fr)] gap-6">
+          <Sidebar active={active} setActive={setActive}/>
+          <div>
+            <TopBar/>
+            <Stats/>
+            <UsersTable/>
+            <WordBank/>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Admin/>);
+</script>
+</body>
+</html>

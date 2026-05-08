@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Inkblot — Draw. Guess. Repeat.</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['Fredoka', 'system-ui', 'sans-serif'],
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          hand: ['Caveat', 'cursive'],
+        },
+        colors: {
+          paper: { DEFAULT: '#FBF6EC', deep: '#F4ECDA', dark: '#E8DEC6' },
+          ink: { DEFAULT: '#1B1830', soft: '#2A2545', mute: '#5A5275' },
+          indigo: { brand: '#312E81', deep: '#1F1B5C' },
+          amber: { brand: '#F59E0B', soft: '#FCD34D' },
+          rose:  { splat: '#EC4899' },
+          mint:  { splat: '#10B981' },
+        },
+      },
+    },
+  };
+</script>
+
+<!-- React + Framer Motion + Babel -->
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm"></script>
+<script src="https://unpkg.com/framer-motion@10.18.0/dist/framer-motion.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin></script>
+
+<style>
+  html, body { background: #FBF6EC; color: #1B1830; }
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  .font-display { font-family: 'Fredoka', system-ui, sans-serif; }
+  .font-hand { font-family: 'Caveat', cursive; }
+
+  /* Paper grain */
+  .paper-grain {
+    background-color: #FBF6EC;
+    background-image:
+      radial-gradient(rgba(27,24,48,0.035) 1px, transparent 1px),
+      radial-gradient(rgba(27,24,48,0.025) 1px, transparent 1px);
+    background-size: 3px 3px, 7px 7px;
+    background-position: 0 0, 1px 1px;
+  }
+
+  /* Glassmorphic auth card */
+  .glass {
+    background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.45));
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.9) inset,
+      0 30px 60px -20px rgba(31,27,92,0.25),
+      0 8px 24px -10px rgba(31,27,92,0.18);
+  }
+
+  /* Hand-drawn underline */
+  .squiggle-underline { position: relative; display: inline-block; }
+  .squiggle-underline::after{
+    content: '';
+    position: absolute;
+    left: -4%;
+    right: -4%;
+    bottom: -10px;
+    height: 14px;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14' preserveAspectRatio='none'><path d='M2 8 Q 25 1 50 7 T 100 7 T 150 7 T 198 7' fill='none' stroke='%23F59E0B' stroke-width='4' stroke-linecap='round'/></svg>") center/100% 100% no-repeat;
+  }
+
+  /* Dashed canvas frame */
+  .dashed-frame {
+    background-image: repeating-linear-gradient(0deg, #1B1830 0 6px, transparent 6px 12px),
+                      repeating-linear-gradient(90deg, #1B1830 0 6px, transparent 6px 12px),
+                      repeating-linear-gradient(180deg, #1B1830 0 6px, transparent 6px 12px),
+                      repeating-linear-gradient(270deg, #1B1830 0 6px, transparent 6px 12px);
+    background-size: 1.5px 100%, 100% 1.5px, 1.5px 100%, 100% 1.5px;
+    background-position: 0 0, 0 0, 100% 0, 0 100%;
+    background-repeat: no-repeat;
+  }
+
+  /* Subtle paint-stroke under headline */
+  .paint-stroke {
+    background: linear-gradient(90deg, transparent 0%, #FCD34D 18%, #FCD34D 80%, transparent 100%);
+    transform: skewX(-6deg) translateY(2px);
+    border-radius: 999px;
+  }
+
+  /* Marquee */
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .marquee-track { animation: marquee 32s linear infinite; }
+
+  /* Floating supplies — CSS-animated to keep the bg lightweight */
+  @keyframes floatA { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(-14px) rotate(calc(var(--r,0deg) + 6deg)); } }
+  @keyframes floatB { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(10px) rotate(calc(var(--r,0deg) - 5deg)); } }
+  .float-a { animation: floatA var(--dur,14s) ease-in-out infinite; animation-delay: var(--dly,0s); }
+  .float-b { animation: floatB var(--dur,14s) ease-in-out infinite; animation-delay: var(--dly,0s); }
+  @keyframes floaterFade { from { opacity: 0; } to { opacity: 1; } }
+  .floater-fade { animation: floaterFade .9s ease-out both; }
+
+  /* Cursor blink */
+  @keyframes blink { 50% { opacity: 0; } }
+  .blink { animation: blink 1s steps(1) infinite; }
+
+  /* Custom scrollbar trim for the auth pane on small screens */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(27,24,48,0.18); border-radius: 8px; }
+
+  /* Selection */
+  ::selection { background: #F59E0B; color: #1B1830; }
+</style>
+</head>
+<body class="paper-grain min-h-screen overflow-x-hidden">
+
+<!-- Speaker notes / Next.js header banner (NOT shown in UI; here for the user to copy) -->
+<!--
+=========================================================================
+ Drop-in for app/(auth)/page.tsx in your Next.js App Router project.
+ The component below is the same JSX, prefixed with "use client".
+ Replace the inline icons with `lucide-react` imports if you prefer.
+=========================================================================
+-->
+
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+const { motion, AnimatePresence, useMotionValue, useTransform, useSpring } = window.Motion;
+
+/* ────────────────────────────────────────────────────────────────────────
+ *  ICONS (inline SVG, lucide-style — replace with `lucide-react` in Next.js)
+ * ──────────────────────────────────────────────────────────────────────── */
+const Icon = ({ d, size=20, stroke=2, className='' }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none"
+       stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round"
+       className={className}>{d}</svg>
+);
+const I = {
+  Mail:    (p)=> <Icon {...p} d={<><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></>}/>,
+  Lock:    (p)=> <Icon {...p} d={<><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>}/>,
+  User:    (p)=> <Icon {...p} d={<><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>}/>,
+  Eye:     (p)=> <Icon {...p} d={<><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></>}/>,
+  EyeOff:  (p)=> <Icon {...p} d={<><path d="m3 3 18 18"/><path d="M10.6 6.1A10.9 10.9 0 0 1 12 6c6.5 0 10 6 10 6a17.8 17.8 0 0 1-3.4 4.2"/><path d="M6.6 6.6A17.8 17.8 0 0 0 2 12s3.5 6 10 6c1.6 0 3-.3 4.2-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></>}/>,
+  Arrow:   (p)=> <Icon {...p} d={<><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></>}/>,
+  Sparkle: (p)=> <Icon {...p} d={<><path d="M12 3v4"/><path d="M12 17v4"/><path d="M3 12h4"/><path d="M17 12h4"/><path d="m5.6 5.6 2.8 2.8"/><path d="m15.6 15.6 2.8 2.8"/><path d="m5.6 18.4 2.8-2.8"/><path d="m15.6 8.4 2.8-2.8"/></>}/>,
+  Check:   (p)=> <Icon {...p} d={<path d="m4 12 5 5L20 6"/>}/>,
+  X:       (p)=> <Icon {...p} d={<><path d="m6 6 12 12"/><path d="m18 6-12 12"/></>}/>,
+  Play:    (p)=> <Icon {...p} d={<path d="M7 5v14l12-7z" fill="currentColor"/>}/>,
+  Users:   (p)=> <Icon {...p} d={<><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 11a3.5 3.5 0 1 0 0-7"/><path d="M22 20a6.5 6.5 0 0 0-5-6.3"/></>}/>,
+  Bolt:    (p)=> <Icon {...p} d={<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/>}/>,
+  Brush:   (p)=> <Icon {...p} d={<><path d="M9 15c-1.8 0-3 1.2-3 3 0 1-1 2-3 2 1.5 2 4 3 6 3 3 0 5-2 5-5 0-1.8-1.2-3-3-3Z"/><path d="m14 12 7-7a2.1 2.1 0 0 1 3 3l-7 7-3-3Z"/></>}/>,
+};
+
+/* ────────────────────────────────────────────────────────────────────────
+ *  FLOATING ART SUPPLIES (decorative bg)
+ *  Each item drifts and rotates on a loop with random phases.
+ * ──────────────────────────────────────────────────────────────────────── */
+const Pencil = ({className=''}) => (
+  <svg viewBox="0 0 120 28" className={className}>
+    <rect x="20" y="6" width="76" height="16" rx="2" fill="#F59E0B"/>
+    <rect x="20" y="6" width="76" height="4" rx="1" fill="#FCD34D"/>
+    <rect x="20" y="18" width="76" height="4" rx="1" fill="#D97706"/>
+    <polygon points="96,6 116,14 96,22" fill="#F4ECDA"/>
+    <polygon points="108,10 116,14 108,18" fill="#1B1830"/>
+    <rect x="6" y="6" width="14" height="16" rx="2" fill="#EC4899"/>
+    <rect x="4" y="6" width="4" height="16" rx="1" fill="#9D174D"/>
+  </svg>
+);
+const Brush = ({className=''}) => (
+  <svg viewBox="0 0 120 28" className={className}>
+    <rect x="40" y="10" width="60" height="8" rx="2" fill="#7C3AED"/>
+    <rect x="40" y="10" width="60" height="2" fill="#A78BFA"/>
+    <rect x="100" y="8" width="6" height="12" rx="1" fill="#312E81"/>
+    <path d="M0 14 Q 14 4 30 14 Q 14 24 0 14 Z" fill="#10B981"/>
+    <path d="M6 14 Q 16 9 26 14 Q 16 19 6 14 Z" fill="#34D399"/>
+  </svg>
+);
+const PaintBlob = ({className=''}) => (
+  <svg viewBox="0 0 60 60" className={className}>
+    <path d="M30 4 C 44 6 56 18 54 32 C 53 44 44 54 32 56 C 18 57 6 48 4 34 C 2 20 14 6 30 4 Z" fill="#EC4899"/>
+    <circle cx="22" cy="22" r="5" fill="#FBF6EC" opacity="0.7"/>
+    <circle cx="46" cy="48" r="3" fill="#9D174D"/>
+  </svg>
+);
+const Eraser = ({className=''}) => (
+  <svg viewBox="0 0 60 36" className={className}>
+    <rect x="2" y="4" width="56" height="28" rx="4" fill="#FCD34D"/>
+    <rect x="2" y="4" width="56" height="10" rx="4" fill="#F59E0B"/>
+    <rect x="6" y="8" width="48" height="3" rx="1" fill="#FBF6EC" opacity="0.5"/>
+  </svg>
+);
+const Squiggle = ({className=''}) => (
+  <svg viewBox="0 0 100 30" className={className}>
+    <path d="M2 15 Q 15 2 28 15 T 54 15 T 80 15 T 98 15"
+          fill="none" stroke="#312E81" strokeWidth="3" strokeLinecap="round"/>
+  </svg>
+);
+const Splat = ({className='', color='#10B981'}) => (
+  <svg viewBox="0 0 80 80" className={className}>
+    <path d="M40 6 C 50 10 64 6 70 18 C 78 28 70 38 76 50 C 80 62 66 70 56 72 C 46 76 38 66 28 70 C 14 76 4 60 8 48 C 12 38 0 30 8 18 C 14 6 28 0 40 6 Z" fill={color}/>
+    <circle cx="22" cy="60" r="4" fill={color}/>
+    <circle cx="68" cy="20" r="3" fill={color}/>
+  </svg>
+);
+const ColorDot = ({className='', color='#F59E0B'}) => (
+  <svg viewBox="0 0 24 24" className={className}><circle cx="12" cy="12" r="10" fill={color}/></svg>
+);
+
+const FLOATERS = [
+  { Comp: Pencil,  top:'8%',  left:'6%',  w:130, dur:14, delay:0, rot:-18 },
+  { Comp: Brush,   top:'72%', left:'4%',  w:110, dur:18, delay:1.2, rot:24 },
+  { Comp: PaintBlob, top:'18%', left:'42%', w:54, dur:11, delay:0.4, rot:0 },
+  { Comp: Eraser,  top:'82%', left:'40%', w:64, dur:13, delay:2.0, rot:-12 },
+  { Comp: Squiggle, top:'14%', left:'72%', w:120, dur:16, delay:0.8, rot:8 },
+  { Comp: Splat,   top:'58%', left:'88%', w:90, dur:20, delay:0.2, rot:0,
+                   props:{color:'#10B981'} },
+  { Comp: Splat,   top:'4%',  left:'52%', w:60, dur:17, delay:1.6, rot:0,
+                   props:{color:'#EC4899'} },
+  { Comp: ColorDot,top:'46%', left:'2%',  w:18, dur:10, delay:0, rot:0,
+                   props:{color:'#F59E0B'} },
+  { Comp: ColorDot,top:'30%', left:'94%', w:14, dur:9, delay:0.7, rot:0,
+                   props:{color:'#312E81'} },
+  { Comp: ColorDot,top:'90%', left:'70%', w:22, dur:12, delay:0.3, rot:0,
+                   props:{color:'#EC4899'} },
+];
+
+const Floater = ({ f, idx }) => {
+  const Comp = f.Comp;
+  const cls = idx % 2 === 0 ? 'float-a' : 'float-b';
+  return (
+    <div
+      className={cls}
+      style={{
+        position:'absolute', top:f.top, left:f.left, width:f.w,
+        '--r': f.rot + 'deg',
+        '--dur': f.dur + 's',
+        '--dly': f.delay + 's',
+      }}
+    >
+      <Comp className="w-full h-auto drop-shadow-[0_10px_20px_rgba(31,27,92,0.18)]" {...(f.props||{})}/>
+    </div>
+  );
+};
+
+const FloatingSupplies = () => {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 overflow-hidden floater-fade"
+    >
+      {FLOATERS.map((f, i) => <Floater key={'fl-'+i} f={f} idx={i}/>)}
+    </div>
+  );
+};
+
+/* ────────────────────────────────────────────────────────────────────────
+ *  TOP NAV
+ * ──────────────────────────────────────────────────────────────────────── */
+const Wordmark = () => (
+  <div className="flex items-center gap-2">
+    <motion.div
+      initial={{ rotate: -8, scale: 0.8, opacity: 0 }}
+      animate={{ rotate: -8, scale: 1, opacity: 1 }}
+      transition={{ type:'spring', stiffness:200, damping:14, delay:0.1 }}
+      className="relative w-10 h-10 rounded-xl bg-indigo-brand flex items-center justify-center shadow-[0_6px_0_-2px_#1F1B5C]"
+    >
+      <span className="font-display font-bold text-paper text-2xl leading-none">i</span>
+      <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-brand"></span>
+    </motion.div>
+    <div className="flex flex-col leading-none">
+      <span className="font-display font-bold text-ink text-2xl tracking-tight">inkblot</span>
+      <span className="font-hand text-ink-mute text-sm -mt-0.5">draw • guess • repeat</span>
+    </div>
+  </div>
+);
+
+const TopNav = ({ onSignIn, onHowItWorks }) => (
+  <header className="relative z-30 max-w-7xl mx-auto px-6 lg:px-10 pt-6 flex items-center justify-between">
+    <Wordmark/>
+    <nav className="hidden md:flex items-center gap-1 bg-white/50 backdrop-blur rounded-full px-2 py-1.5 border border-white/60 shadow-sm">
+      {['How it works', 'Rooms', 'Leaderboard', 'Changelog'].map((l,i)=>(
+        <motion.a key={l} href="#"
+          whileHover={{ y:-1 }}
+          className="px-3.5 py-1.5 text-sm font-medium text-ink-soft hover:text-ink rounded-full hover:bg-white/80 transition-colors">
+          {l}
+        </motion.a>
+      ))}
+    </nav>
+    <div className="flex items-center gap-2">
+      <motion.button
+        whileHover={{ y:-1 }}
+        whileTap={{ scale:0.96 }}
+        onClick={onSignIn}
+        className="hidden sm:inline-flex px-4 py-2 text-sm font-semibold text-ink hover:text-indigo-brand"
+        onClick={()=> window.location.href='Inkblot - Lobby.html'}
+      >Sign in</motion.button>
+    </div>
+  </header>
+);
+
+/* ────────────────────────────────────────────────────────────────────────
+ *  HERO
+ * ──────────────────────────────────────────────────────────────────────── */
+const HeroLogo = () => (
+  <div className="relative inline-block">
+    <motion.h1
+      initial={{ opacity:0, y:20 }}
+      animate={{ opacity:1, y:0 }}
+      transition={{ duration:0.7, ease:[0.2,0.8,0.2,1] }}
+      className="font-display font-bold text-ink leading-[0.92] tracking-tight text-[clamp(3rem,8vw,7rem)]"
+    >
+      Doodle it.<br/>
+      <span className="relative inline-block">
+        <span className="relative z-10">Guess it.</span>
+        <motion.span
+          initial={{ scaleX:0 }} animate={{ scaleX:1 }}
+          transition={{ delay:0.7, duration:0.7, ease:[0.2,0.8,0.2,1] }}
+          className="paint-stroke absolute left-0 right-0 bottom-3 h-[0.55em] origin-left"
+        ></motion.span>
+      </span>
+      <br/>
+      <span className="font-hand text-amber-brand font-normal text-[1.05em] -tracking-[0.01em]">be the loudest pencil.</span>
+    </motion.h1>
+    {/* doodle sparkles around heading */}
+    <motion.div
+      initial={{ opacity:0, scale:0.5, rotate:-30 }}
+      animate={{ opacity:1, scale:1, rotate:0 }}
+      transition={{ delay:0.5, type:'spring', stiffness:160 }}
+      className="absolute -top-3 -right-6 text-rose-splat"
+    ><I.Sparkle size={28}/></motion.div>
+  </div>
+);
+
+const StatChip = ({ label, value, dot }) => (
+  <motion.div
+    whileHover={{ y:-2 }}
+    className="flex items-center gap-2.5 bg-white/60 backdrop-blur border border-white/80 rounded-full px-3.5 py-2 shadow-sm"
+  >
+    <span className={`w-2 h-2 rounded-full ${dot}`}></span>
+    <span className="font-display font-semibold text-ink tabular-nums">{value}</span>
+    <span className="text-xs text-ink-mute">{label}</span>
+  </motion.div>
+);
+
+const RotatingWord = () => {
+  const words = ['banana','volcano','astronaut','spaghetti','dragon','submarine','penguin','tornado'];
+  const [i, setI] = useState(0);
+  useEffect(()=>{ const t = setInterval(()=> setI(v=> (v+1)%words.length), 2200); return ()=> clearInterval(t); },[]);
+  return (
+    <span className="relative inline-flex items-baseline">
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={words[i]}
+          initial={{ y: 14, opacity: 0, rotate: -3 }}
+          animate={{ y: 0, opacity: 1, rotate: 0 }}
+          exit={{ y: -14, opacity: 0, rotate: 3 }}
+          transition={{ type:'spring', stiffness:240, damping:18 }}
+          className="font-hand text-amber-brand font-bold text-[1.15em]"
+        >“{words[i]}”</motion.span>
+      </AnimatePresence>
+      <span className="font-hand text-ink blink ml-0.5">|</span>
+    </span>
+  );
+};
+
+const Hero = ({ onPlay }) => (
+  <div className="relative">
+    <HeroLogo/>
+
+    <motion.p
+      initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }}
+      transition={{ delay:0.35, duration:0.6 }}
+      className="mt-7 max-w-xl text-ink-soft text-lg leading-relaxed"
+    >
+      A real-time scribble battle for friends, randos & the chronically online.
+      One pencil. Sixty seconds. Today's secret word is&nbsp;<RotatingWord/>.
+    </motion.p>
+
+    <motion.div
+      initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }}
+      transition={{ delay:0.55, duration:0.6 }}
+      className="mt-9 flex flex-wrap items-center gap-3"
+    >
+      <motion.button
+        onClick={onPlay}
+        whileHover={{ y:-3 }}
+        whileTap={{ scale:0.97, y:0 }}
+        className="group relative inline-flex items-center gap-2.5 bg-indigo-brand text-paper font-display font-semibold text-lg px-7 py-4 rounded-2xl shadow-[0_8px_0_-1px_#1F1B5C] hover:shadow-[0_12px_0_-1px_#1F1B5C] transition-shadow"
+      >
+        <I.Bolt size={18}/> Start drawing
+        <span className="absolute inset-0 rounded-2xl ring-2 ring-amber-brand/0 group-hover:ring-amber-brand/60 transition-all"></span>
+      </motion.button>
+
+
+    </motion.div>
+
+    <motion.div
+      initial={{ opacity:0, y:14 }} animate={{ opacity:1, y:0 }}
+      transition={{ delay:0.75, duration:0.6 }}
+      className="mt-10 flex flex-wrap items-center gap-3"
+    >
+      <StatChip dot="bg-mint-splat" value="2,841" label="drawing right now"/>
+      <StatChip dot="bg-amber-brand" value="184" label="rooms open"/>
+      <StatChip dot="bg-rose-splat" value="12,431" label="doodles today"/>
+    </motion.div>
+  </div>
+);
+
+/* ────────────────────────────────────────────────────────────────────────
+ *  AUTH CARD — Login / Signup with toggle + inline validation
+ * ──────────────────────────────────────────────────────────────────────── */
+const validators = {
+  name:  (v) => !v ? 'Pick a nickname so people can roast you.' : v.length < 2 ? 'Too short.' : v.length > 16 ? 'Max 16 characters.' : '',
+  email: (v) => !v ? 'Email required.' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? "That doesn't look like an email." : '',
+  pass:  (v) => !v ? 'Password required.' : v.length < 8 ? 'Min 8 characters.' : '',
+};
+
+const Field = ({ icon:IconC, type='text', label, value, onChange, onBlur, error, touched, right, autoComplete }) => {
+  const [focused, setFocused] = useState(false);
+  const ok = touched && !error && value;
+  const bad = touched && error;
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-ink-soft uppercase tracking-wider flex items-center gap-2">
+        {label}
+        <AnimatePresence>
+          {ok && (
+            <motion.span
+              initial={{ scale:0, opacity:0 }} animate={{ scale:1, opacity:1 }} exit={{ scale:0, opacity:0 }}
+              className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-mint-splat text-white"
+            ><I.Check size={11} stroke={3}/></motion.span>
+          )}
+        </AnimatePresence>
+      </label>
+      <div className={`relative flex items-center gap-2 rounded-xl bg-white/80 border transition-all
+        ${bad ? 'border-rose-splat/70 ring-2 ring-rose-splat/15'
+              : focused ? 'border-indigo-brand/70 ring-2 ring-indigo-brand/15'
+              : 'border-ink/10'}`}>
+        <span className={`pl-3.5 ${bad ? 'text-rose-splat' : focused ? 'text-indigo-brand' : 'text-ink-mute'}`}>
+          <IconC size={16}/>
+        </span>
+        <input
+          type={type}
+          value={value}
+          autoComplete={autoComplete}
+          onChange={(e)=> onChange(e.target.value)}
+          onFocus={()=> setFocused(true)}
+          onBlur={()=> { setFocused(false); onBlur && onBlur(); }}
+          className="flex-1 bg-transparent py-3 pr-3 text-ink placeholder:text-ink-mute/60 outline-none text-[15px]"
+          placeholder={label}
+        />
+        {right && <span className="pr-3">{right}</span>}
+      </div>
+      <AnimatePresence>
+        {bad && (
+          <motion.p
+            initial={{ opacity:0, y:-4, height:0 }}
+            animate={{ opacity:1, y:0, height:'auto' }}
+            exit={{ opacity:0, y:-4, height:0 }}
+            className="text-[12px] text-rose-splat font-medium pl-1"
+          >{error}</motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const PasswordStrength = ({ value }) => {
+  const score = useMemo(()=>{
+    let s = 0;
+    if (value.length >= 8) s++;
+    if (/[A-Z]/.test(value)) s++;
+    if (/[0-9]/.test(value)) s++;
+    if (/[^A-Za-z0-9]/.test(value)) s++;
+    return s;
+  }, [value]);
+  const labels = ['','weak','okay','strong','muscle'];
+  const colors = ['bg-ink/15','bg-rose-splat','bg-amber-brand','bg-mint-splat','bg-indigo-brand'];
+  return (
+    <div className="flex items-center gap-2 pt-1">
+      <div className="flex-1 grid grid-cols-4 gap-1">
+        {[0,1,2,3].map(i=>(
+          <div key={i} className="h-1.5 rounded-full bg-ink/10 overflow-hidden">
+            <motion.div
+              initial={false}
+              animate={{ width: score > i ? '100%' : '0%' }}
+              transition={{ type:'spring', stiffness:160, damping:18 }}
+              className={`h-full ${score > i ? colors[score] : ''}`}
+            />
+          </div>
+        ))}
+      </div>
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-mute w-14 text-right">
+        {labels[score]}
+      </span>
+    </div>
+  );
+};
+
+const AuthCard = () => {
+  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [showPass, setShowPass] = useState(false);
+  const [form, setForm] = useState({ name:'', email:'', pass:'' });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const set = (k,v) => {
+    setForm(f => ({...f, [k]:v}));
+    if (touched[k]) setErrors(e => ({...e, [k]: validators[k]?.(v) || ''}));
+  };
+  const blur = (k) => {
+    setTouched(t => ({...t, [k]: true}));
+    setErrors(e => ({...e, [k]: validators[k]?.(form[k]) || ''}));
+  };
+
+  const isValid = useMemo(()=>{
+    const required = mode === 'signup' ? ['name','email','pass'] : ['email','pass'];
+    return required.every(k => form[k] && !validators[k](form[k]));
+  }, [form, mode]);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const required = mode === 'signup' ? ['name','email','pass'] : ['email','pass'];
+    const newErrors = {};
+    const newTouched = {};
+    required.forEach(k => { newErrors[k] = validators[k](form[k]); newTouched[k] = true; });
+    setErrors(newErrors); setTouched(newTouched);
+    if (Object.values(newErrors).some(Boolean)) return;
+    setSubmitting(true);
+    await new Promise(r => setTimeout(r, 1100));
+    setSubmitting(false);
+    setDone(true);
+    setTimeout(()=> setDone(false), 1600);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity:0, y:30, rotate:1 }}
+      animate={{ opacity:1, y:0, rotate:1 }}
+      transition={{ delay:0.4, duration:0.7, ease:[0.2,0.8,0.2,1] }}
+      className="relative w-full max-w-[440px]"
+    >
+      {/* Tape strips */}
+      <div className="absolute -top-3 left-8 w-16 h-5 bg-amber-soft/80 rotate-[-6deg] rounded-[2px] shadow-sm z-20"></div>
+      <div className="absolute -top-2 right-10 w-12 h-5 bg-rose-splat/40 rotate-[8deg] rounded-[2px] shadow-sm z-20"></div>
+
+      <div className="glass rounded-3xl p-6 sm:p-7 relative overflow-hidden">
+        {/* Card header */}
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <p className="font-hand text-amber-brand text-2xl leading-none -mb-0.5">welcome to</p>
+            <h2 className="font-display font-bold text-ink text-2xl">the sketchbook</h2>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] text-ink-mute uppercase tracking-wider font-semibold">Page</p>
+            <p className="font-display font-bold text-ink-mute">01 / 04</p>
+          </div>
+        </div>
+
+        {/* Toggle pill */}
+        <div role="tablist" className="relative grid grid-cols-2 gap-1 p-1 bg-ink/5 rounded-2xl mb-6">
+          <motion.div
+            layout
+            transition={{ type:'spring', stiffness:380, damping:30 }}
+            className={`absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-xl bg-white shadow-md
+              ${mode==='login' ? 'left-1' : 'left-[calc(50%+1px)]'}`}
+          />
+          {['login','signup'].map(m => (
+            <button
+              key={m}
+              role="tab"
+              aria-selected={mode===m}
+              onClick={()=> setMode(m)}
+              className={`relative z-10 py-2.5 font-display font-semibold capitalize transition-colors
+                ${mode===m ? 'text-indigo-brand' : 'text-ink-mute hover:text-ink-soft'}`}
+            >
+              {m === 'login' ? 'Log in' : 'Sign up'}
+            </button>
+          ))}
+        </div>
+
+        {/* Form */}
+        <form onSubmit={submit} className="space-y-4">
+          <AnimatePresence mode="wait">
+            {mode === 'signup' && (
+              <motion.div
+                key="name"
+                initial={{ opacity:0, height:0, marginBottom:0 }}
+                animate={{ opacity:1, height:'auto', marginBottom:0 }}
+                exit={{ opacity:0, height:0, marginBottom:-16 }}
+                transition={{ duration:0.35 }}
+              >
+                <Field
+                  icon={I.User} label="Nickname"
+                  value={form.name} onChange={(v)=>set('name',v)} onBlur={()=>blur('name')}
+                  error={errors.name} touched={touched.name}
+                  autoComplete="nickname"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <Field
+            icon={I.Mail} type="email" label="Email"
+            value={form.email} onChange={(v)=>set('email',v)} onBlur={()=>blur('email')}
+            error={errors.email} touched={touched.email}
+            autoComplete="email"
+          />
+
+          <div>
+            <Field
+              icon={I.Lock} type={showPass?'text':'password'} label="Password"
+              value={form.pass} onChange={(v)=>set('pass',v)} onBlur={()=>blur('pass')}
+              error={errors.pass} touched={touched.pass}
+              autoComplete={mode==='login' ? 'current-password' : 'new-password'}
+              right={
+                <button type="button" onClick={()=>setShowPass(s=>!s)}
+                  className="text-ink-mute hover:text-ink p-1 -m-1">
+                  {showPass ? <I.EyeOff size={16}/> : <I.Eye size={16}/>}
+                </button>
+              }
+            />
+            <AnimatePresence>
+              {mode === 'signup' && form.pass && (
+                <motion.div
+                  initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }}
+                ><PasswordStrength value={form.pass}/></motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {mode === 'login' && (
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 text-[13px] text-ink-soft cursor-pointer select-none">
+                <input type="checkbox" className="peer sr-only"/>
+                <span className="w-4 h-4 rounded-md border border-ink/25 bg-white peer-checked:bg-indigo-brand peer-checked:border-indigo-brand transition-colors flex items-center justify-center">
+                  <I.Check size={11} stroke={3} className="text-white opacity-0 peer-checked:opacity-100"/>
+                </span>
+                Keep me sketching
+              </label>
+              <a href="#" className="text-[13px] font-semibold text-indigo-brand hover:underline">Forgot?</a>
+            </div>
+          )}
+
+          <motion.button
+            type="submit"
+            disabled={submitting}
+            whileHover={!submitting ? { y:-2 } : {}}
+            whileTap={!submitting ? { scale:0.97, y:0 } : {}}
+            className={`relative w-full inline-flex items-center justify-center gap-2 font-display font-semibold text-paper text-lg py-3.5 rounded-2xl overflow-hidden
+              ${submitting ? 'bg-ink' : 'bg-indigo-brand hover:bg-indigo-deep'}
+              shadow-[0_6px_0_-1px_#1F1B5C] transition-colors`}
+          >
+            <AnimatePresence mode="wait">
+              {done ? (
+                <motion.span key="done"
+                  initial={{ y:8, opacity:0 }} animate={{ y:0, opacity:1 }} exit={{ y:-8, opacity:0 }}
+                  className="inline-flex items-center gap-2"
+                ><I.Check size={18} stroke={3}/> Welcome aboard!</motion.span>
+              ) : submitting ? (
+                <motion.span key="loading"
+                  initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+                  className="inline-flex items-center gap-2"
+                >
+                  <span className="w-4 h-4 border-2 border-paper/40 border-t-paper rounded-full animate-spin"/>
+                  Sharpening pencils…
+                </motion.span>
+              ) : (
+                <motion.span key="cta"
+                  initial={{ y:8, opacity:0 }} animate={{ y:0, opacity:1 }} exit={{ y:-8, opacity:0 }}
+                  className="inline-flex items-center gap-2"
+                >
+                  {mode === 'login' ? 'Take me to my room' : 'Create my sketchbook'}
+                  <I.Arrow size={18}/>
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 py-1">
+            <div className="flex-1 h-px bg-ink/10"></div>
+            <span className="font-hand text-ink-mute text-base">or</span>
+            <div className="flex-1 h-px bg-ink/10"></div>
+          </div>
+
+          <motion.button
+            type="button"
+            whileHover={{ y:-1 }} whileTap={{ scale:0.98 }}
+            className="w-full inline-flex items-center justify-center gap-2 bg-white/70 hover:bg-white border border-ink/10 text-ink font-semibold py-3 rounded-2xl"
+          >
+            <I.Users size={16}/> Play as a guest
+            <span className="ml-1 text-[11px] uppercase tracking-wider bg-amber-soft/80 text-ink px-1.5 py-0.5 rounded font-bold">no email</span>
+          </motion.button>
+        </form>
+
+        <p className="mt-5 text-[12px] text-ink-mute text-center leading-relaxed">
+          By {mode === 'signup' ? 'signing up' : 'logging in'}, you agree to keep
+          your drawings <span className="font-semibold text-ink">mostly</span> wholesome.
+        </p>
+      </div>
+
+      {/* Bottom trust note */}
+      <div className="mt-4 flex items-center justify-center gap-2 text-[12px] text-ink-mute font-medium">
+        <span className="w-1.5 h-1.5 rounded-full bg-mint-splat"></span>
+        end-to-end encrypted lobbies · no ads · open source
+      </div>
+    </motion.div>
+  );
+};
+
+/* ────────────────────────────────────────────────────────────────────────
+ *  MARQUEE — running list of recent words / players
+ * ──────────────────────────────────────────────────────────────────────── */
+const Marquee = () => {
+  const items = [
+    { tag:'now drawing', val:'pineapple', who:'@maple' },
+    { tag:'guessed', val:'astronaut', who:'@nori' },
+    { tag:'now drawing', val:'haunted toaster', who:'@kep' },
+    { tag:'+200 pts', val:'volcano', who:'@buns' },
+    { tag:'now drawing', val:'spaghetti', who:'@toko' },
+    { tag:'guessed', val:'penguin', who:'@huxley' },
+    { tag:'now drawing', val:'rocket cat', who:'@odd' },
+    { tag:'+150 pts', val:'submarine', who:'@vivi' },
+  ];
+  const block = (
+    <div className="flex items-center gap-10 px-5">
+      {items.map((it,i)=>(
+        <div key={i} className="flex items-center gap-3 whitespace-nowrap">
+          <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-ink-mute">{it.tag}</span>
+          <span className="font-hand text-2xl text-ink">{it.val}</span>
+          <span className="text-sm text-ink-mute">{it.who}</span>
+          <span className="w-1 h-1 rounded-full bg-ink-mute/40"></span>
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <div className="relative z-10 mt-16 sm:mt-24 border-y border-ink/10 bg-paper-deep/60 backdrop-blur py-3 overflow-hidden">
+      <div className="flex marquee-track w-max">
+        {block}{block}
+      </div>
+      <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-paper to-transparent pointer-events-none"></div>
+      <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-paper to-transparent pointer-events-none"></div>
+    </div>
+  );
+};
+
+/* ────────────────────────────────────────────────────────────────────────
+ *  PAGE
+ * ──────────────────────────────────────────────────────────────────────── */
+function LandingAuthPage() {
+  return (
+    <div className="relative min-h-screen w-full">
+      <FloatingSupplies/>
+
+      <TopNav/>
+
+      <main className="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 pt-14 pb-10 grid lg:grid-cols-[1.1fr_minmax(0,440px)] gap-12 lg:gap-16 items-center">
+        <Hero/>
+        <div className="flex justify-center lg:justify-end">
+          <AuthCard/>
+        </div>
+      </main>
+
+      <footer className="relative z-10 max-w-7xl mx-auto px-6 lg:px-10 py-8 flex flex-wrap items-center justify-between gap-3 text-[13px] text-ink-mute">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-brand"></span>
+          © 2026 inkblot studios — handcrafted with tea
+        </div>
+        <div className="flex items-center gap-5">
+          <a href="#" className="hover:text-ink">Privacy</a>
+          <a href="#" className="hover:text-ink">Rules</a>
+          <a href="#" className="hover:text-ink">Discord</a>
+          <a href="#" className="hover:text-ink">v0.3.1</a>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<LandingAuthPage/>);
+</script>
+</body>
+</html>

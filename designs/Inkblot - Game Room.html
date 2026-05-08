@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Inkblot — Game Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="inkblot-theme.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      fontFamily: {
+        display: ['Fredoka', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        hand: ['Caveat', 'cursive'],
+      },
+      colors: {
+        paper: { DEFAULT:'#FBF6EC', deep:'#F4ECDA', dark:'#E8DEC6' },
+        ink:   { DEFAULT:'#1B1830', soft:'#2A2545', mute:'#5A5275' },
+        indigo:{ brand:'#312E81', deep:'#1F1B5C' },
+        amber: { brand:'#F59E0B', soft:'#FCD34D' },
+        rose:  { splat:'#EC4899' },
+        mint:  { splat:'#10B981' },
+      },
+    } },
+  };
+</script>
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm"></script>
+<script src="https://unpkg.com/framer-motion@10.18.0/dist/framer-motion.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin></script>
+</head>
+<body class="paper-grain min-h-screen overflow-x-hidden">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+const { motion, AnimatePresence, LayoutGroup } = window.Motion;
+
+const Icon = ({ d, size=20, stroke=2, className='' }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" className={className}>{d}</svg>
+);
+const I = {
+  Clock:  (p)=> <Icon {...p} d={<><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>}/>,
+  Door:   (p)=> <Icon {...p} d={<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></>}/>,
+  Brush:  (p)=> <Icon {...p} d={<><path d="M9 15c-1.8 0-3 1.2-3 3 0 1-1 2-3 2 1.5 2 4 3 6 3 3 0 5-2 5-5 0-1.8-1.2-3-3-3Z"/><path d="m14 12 7-7a2.1 2.1 0 0 1 3 3l-7 7-3-3Z"/></>}/>,
+  Eraser: (p)=> <Icon {...p} d={<><path d="m20 20-7-7-9 9 7 7Z" transform="rotate(-45 12 12)"/><path d="m9 9 7 7"/></>}/>,
+  Bucket: (p)=> <Icon {...p} d={<><path d="m4 11 8 8 9-9-8-8z"/><path d="M4 11h17"/><path d="M22 17a2 2 0 1 1-4 0c0-2 2-4 2-4s2 2 2 4Z"/></>}/>,
+  Undo:   (p)=> <Icon {...p} d={<><path d="M3 7v6h6"/><path d="M21 17a8 8 0 0 0-15-4l-3 3"/></>}/>,
+  Redo:   (p)=> <Icon {...p} d={<><path d="M21 7v6h-6"/><path d="M3 17a8 8 0 0 1 15-4l3 3"/></>}/>,
+  Trash:  (p)=> <Icon {...p} d={<><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></>}/>,
+  Send:   (p)=> <Icon {...p} d={<path d="m22 2-20 9 9 3 3 9 8-21Z"/>}/>,
+  Smile:  (p)=> <Icon {...p} d={<><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/></>}/>,
+  Crown:  (p)=> <Icon {...p} d={<path d="M3 19h18l-2-11-4 4-4-7-4 7-4-4z"/>}/>,
+  Pencil: (p)=> <Icon {...p} d={<><path d="m15 5 4 4"/><path d="M4 20 18 6l4 4L8 24Z"/></>}/>,
+  Star:   (p)=> <Icon {...p} d={<path d="m12 3 2.6 5.6 6.1.6-4.5 4.2 1.2 6L12 16.8 6.6 19.4l1.2-6L3.3 9.2l6.1-.6Z"/>}/>,
+  Lightbulb:(p)=> <Icon {...p} d={<><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12c1 1 1 2 1 4h6c0-2 0-3 1-4a7 7 0 0 0-4-12Z"/></>}/>,
+};
+
+/* ─── Wordmark + small nav ─────────────────────────────────────────── */
+const Wordmark = () => (
+  <a href="Inkblot - Lobby.html" className="flex items-center gap-2 group">
+    <div className="relative w-9 h-9 rounded-xl bg-indigo-brand flex items-center justify-center shadow-[0_5px_0_-2px_#1F1B5C] -rotate-6 group-hover:rotate-0 transition-transform">
+      <span className="font-display font-bold text-paper text-xl leading-none">i</span>
+      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-brand"></span>
+    </div>
+    <span className="font-display font-bold text-ink text-xl tracking-tight hidden sm:inline">inkblot</span>
+  </a>
+);
+
+/* ─── Top bar: timer, hidden word, round ─────────────────────────── */
+const TimerRing = ({ value, max=60 }) => {
+  const r = 26, c = 2*Math.PI*r;
+  const offset = c - (value/max) * c;
+  const danger = value <= 10;
+  return (
+    <div className="relative w-16 h-16 flex items-center justify-center">
+      <svg viewBox="0 0 64 64" className="absolute inset-0 -rotate-90">
+        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(27,24,48,0.1)" strokeWidth="6"/>
+        <motion.circle cx="32" cy="32" r={r} fill="none"
+          stroke={danger ? '#EC4899' : '#F59E0B'} strokeWidth="6" strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={offset}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 0.4, ease:'linear' }}
+        />
+      </svg>
+      <motion.span
+        key={value}
+        initial={{ scale: 1.2 }} animate={{ scale: 1 }}
+        className={`font-display font-bold tabular-nums text-xl ${danger ? 'text-rose-splat' : 'text-ink'}`}
+      >{value}</motion.span>
+    </div>
+  );
+};
+
+const HiddenWord = ({ word='ASTRONAUT', revealed=[0,3], drawerName='@huxley' }) => {
+  return (
+    <div className="flex flex-col items-center">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <I.Pencil size={12} className="text-ink-mute"/>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-mute">
+          {drawerName} is drawing — guess!
+        </span>
+      </div>
+      <div className="flex gap-1.5 sm:gap-2 items-end">
+        {word.split('').map((ch, i) => (
+          <div key={i} className="flex flex-col items-center">
+            <motion.div
+              animate={{ rotateY: revealed.includes(i) ? 0 : 0 }}
+              className={`w-7 h-9 sm:w-8 sm:h-10 rounded-md flex items-center justify-center font-display font-bold text-base sm:text-lg
+                ${revealed.includes(i)
+                  ? 'bg-amber-soft border border-amber-brand text-ink'
+                  : 'bg-transparent text-transparent'}`}
+            >
+              {revealed.includes(i) ? ch : '_'}
+            </motion.div>
+            <div className="w-7 sm:w-8 h-0.5 bg-ink/50 rounded-full"></div>
+          </div>
+        ))}
+      </div>
+      <span className="text-[11px] text-ink-mute mt-1.5 font-hand text-base">{word.length} letters · noun</span>
+    </div>
+  );
+};
+
+const TopBar = ({ time, round, totalRounds }) => (
+  <header className="relative z-30 max-w-[1400px] mx-auto px-4 lg:px-6 pt-4">
+    <div className="glass rounded-2xl px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <Wordmark/>
+        <div className="hidden sm:flex flex-col leading-tight border-l border-ink/10 pl-4">
+          <span className="text-[11px] uppercase tracking-wider font-bold text-ink-mute">Round</span>
+          <span className="font-display font-bold text-ink tabular-nums">{round} <span className="text-ink-mute font-normal">/ {totalRounds}</span></span>
+        </div>
+        <div className="hidden md:flex flex-col leading-tight border-l border-ink/10 pl-4">
+          <span className="text-[11px] uppercase tracking-wider font-bold text-ink-mute">Room</span>
+          <span className="font-display font-semibold text-ink text-sm">maple's atelier</span>
+        </div>
+      </div>
+
+      <HiddenWord/>
+
+      <div className="flex items-center gap-3">
+        <TimerRing value={time}/>
+        <a href="Inkblot - Lobby.html"
+          className="inline-flex items-center gap-1.5 bg-white/70 hover:bg-white border border-ink/10 text-ink-soft hover:text-rose-splat px-3 py-2 rounded-xl text-sm font-semibold">
+          <I.Door size={16}/> <span className="hidden sm:inline">Leave</span>
+        </a>
+      </div>
+    </div>
+  </header>
+);
+
+/* ─── Leaderboard with animated rank shifts ─────────────────────────── */
+const initialPlayers = [
+  { id:'huxley', name:'@huxley',  score: 2840, color:'#F59E0B', isDrawer:true,  isYou:false, streak:3 },
+  { id:'maple',  name:'@maple',   score: 2705, color:'#312E81', isDrawer:false, isYou:true,  streak:0 },
+  { id:'nori',   name:'@nori',    score: 2510, color:'#10B981', isDrawer:false, isYou:false, streak:1 },
+  { id:'buns',   name:'@buns',    score: 2415, color:'#EC4899', isDrawer:false, isYou:false, streak:0 },
+  { id:'toko',   name:'@toko',    score: 2080, color:'#7C3AED', isDrawer:false, isYou:false, streak:0 },
+  { id:'kep',    name:'@kep',     score: 1940, color:'#0EA5E9', isDrawer:false, isYou:false, streak:0 },
+  { id:'odd',    name:'@odd',     score: 1755, color:'#D97706', isDrawer:false, isYou:false, streak:0 },
+  { id:'vivi',   name:'@vivi',    score: 1610, color:'#9D174D', isDrawer:false, isYou:false, streak:0 },
+];
+
+const Leaderboard = ({ players }) => {
+  const sorted = [...players].sort((a,b)=> b.score - a.score);
+  return (
+    <aside className="glass rounded-2xl p-4 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-3 px-1">
+        <div className="flex items-center gap-2">
+          <I.Crown size={16} className="text-amber-brand"/>
+          <h3 className="font-display font-bold text-ink">Leaderboard</h3>
+        </div>
+        <span className="text-[11px] text-ink-mute">{players.length} players</span>
+      </div>
+
+      <LayoutGroup>
+        <ul className="flex-1 overflow-y-auto pr-1 space-y-1.5">
+          {sorted.map((p, idx) => (
+            <motion.li
+              key={p.id}
+              layout
+              transition={{ type:'spring', stiffness:380, damping:34 }}
+              className={`relative flex items-center gap-3 p-2 rounded-xl border transition-colors
+                ${p.isYou ? 'bg-amber-soft/40 border-amber-brand/40'
+                          : idx===0 ? 'bg-white/80 border-ink/10'
+                                    : 'bg-white/40 border-transparent hover:bg-white/60'}`}
+            >
+              <span className="font-display font-bold text-ink-mute w-5 text-center tabular-nums">{idx+1}</span>
+              <div className="relative shrink-0">
+                <div className="w-8 h-8 rounded-full font-display font-bold text-paper flex items-center justify-center text-sm"
+                     style={{ background: p.color }}>{p.name[1].toUpperCase()}</div>
+                {p.isDrawer && (
+                  <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-brand text-ink flex items-center justify-center ring-2 ring-paper">
+                    <I.Pencil size={10} stroke={2.5}/>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-ink text-sm truncate">{p.name}</span>
+                  {p.isYou && <span className="text-[9px] font-bold uppercase tracking-wider bg-ink text-paper px-1 py-0.5 rounded">you</span>}
+                </div>
+                <div className="text-[11px] text-ink-mute flex items-center gap-1.5">
+                  {p.isDrawer ? 'drawing' : p.score === sorted[0].score ? 'leader' : 'guessing'}
+                  {p.streak > 0 && (
+                    <span className="inline-flex items-center gap-0.5 text-amber-brand font-semibold">
+                      🔥 {p.streak}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <motion.span
+                key={p.score}
+                initial={{ scale: 1.15 }}
+                animate={{ scale: 1 }}
+                className="font-display font-bold text-ink tabular-nums text-sm"
+              >{p.score.toLocaleString()}</motion.span>
+            </motion.li>
+          ))}
+        </ul>
+      </LayoutGroup>
+
+      <div className="mt-3 p-3 rounded-xl bg-indigo-brand/8 border border-indigo-brand/15">
+        <div className="flex items-center gap-2 mb-1">
+          <I.Lightbulb size={14} className="text-indigo-brand"/>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-brand">Hint</span>
+        </div>
+        <p className="text-[12px] text-ink-soft leading-snug">
+          Guess fast — first 3 correct guesses get bonus ink.
+        </p>
+      </div>
+    </aside>
+  );
+};
+
+/* ─── Drawing canvas ───────────────────────────────────────────────── */
+const COLORS = ['#1B1830','#FBF6EC','#EC4899','#F59E0B','#FCD34D','#10B981','#0EA5E9','#312E81','#7C3AED','#9D174D'];
+const SIZES  = [3, 6, 12, 22];
+
+const DrawingCanvas = () => {
+  const canvasRef = useRef(null);
+  const [color, setColor] = useState('#1B1830');
+  const [size, setSize] = useState(6);
+  const [tool, setTool] = useState('brush'); // brush | eraser | fill
+  const drawing = useRef(false);
+  const last = useRef({x:0, y:0});
+  const history = useRef([]);
+  const future = useRef([]);
+
+  // init canvas
+  useEffect(()=>{
+    const cv = canvasRef.current;
+    if (!cv) return;
+    const dpr = window.devicePixelRatio || 1;
+    const resize = () => {
+      const rect = cv.getBoundingClientRect();
+      cv.width = rect.width * dpr;
+      cv.height = rect.height * dpr;
+      const ctx = cv.getContext('2d');
+      ctx.scale(dpr, dpr);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      // Demo doodle
+      drawDemo(ctx, rect.width, rect.height);
+      pushHistory();
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    return ()=> window.removeEventListener('resize', resize);
+  },[]);
+
+  const drawDemo = (ctx, w, h) => {
+    ctx.fillStyle = '#FFFEFB';
+    ctx.fillRect(0, 0, w, h);
+    // sun
+    ctx.strokeStyle = '#F59E0B'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(w*0.78, h*0.22, 38, 0, Math.PI*2); ctx.stroke();
+    // rays
+    for (let i=0; i<8; i++) {
+      const a = (i/8)*Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(w*0.78 + Math.cos(a)*48, h*0.22 + Math.sin(a)*48);
+      ctx.lineTo(w*0.78 + Math.cos(a)*60, h*0.22 + Math.sin(a)*60);
+      ctx.stroke();
+    }
+    // helmet (astronaut)
+    ctx.strokeStyle = '#1B1830'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(w*0.5, h*0.45, 56, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(w*0.5, h*0.45, 42, 0, Math.PI*2); ctx.stroke();
+    // shine on helmet
+    ctx.strokeStyle = '#0EA5E9'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(w*0.46, h*0.42, 14, Math.PI, Math.PI*1.4); ctx.stroke();
+    // body
+    ctx.strokeStyle = '#1B1830'; ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(w*0.5-32, h*0.55);
+    ctx.lineTo(w*0.5-46, h*0.82);
+    ctx.lineTo(w*0.5+46, h*0.82);
+    ctx.lineTo(w*0.5+32, h*0.55);
+    ctx.stroke();
+    // arms
+    ctx.beginPath();
+    ctx.moveTo(w*0.5-32, h*0.6); ctx.lineTo(w*0.5-58, h*0.7);
+    ctx.moveTo(w*0.5+32, h*0.6); ctx.lineTo(w*0.5+58, h*0.7);
+    ctx.stroke();
+    // ground squiggle
+    ctx.strokeStyle = '#10B981'; ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(20, h*0.92);
+    for (let x = 20; x < w-20; x += 16) {
+      ctx.quadraticCurveTo(x+8, h*0.92 + (x%32===0?-6:6), x+16, h*0.92);
+    }
+    ctx.stroke();
+    // small star
+    ctx.fillStyle = '#EC4899';
+    ctx.beginPath(); ctx.arc(w*0.18, h*0.28, 5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(w*0.12, h*0.55, 3, 0, Math.PI*2); ctx.fill();
+  };
+
+  const pushHistory = () => {
+    const cv = canvasRef.current;
+    if (!cv) return;
+    try {
+      history.current.push(cv.toDataURL());
+      if (history.current.length > 30) history.current.shift();
+      future.current = [];
+    } catch (e) {}
+  };
+
+  const restore = (dataURL) => {
+    const cv = canvasRef.current; if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+      const rect = cv.getBoundingClientRect();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      const dpr = window.devicePixelRatio || 1;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    img.src = dataURL;
+  };
+
+  const undo = () => {
+    if (history.current.length <= 1) return;
+    const cur = history.current.pop();
+    future.current.push(cur);
+    const prev = history.current[history.current.length-1];
+    if (prev) restore(prev);
+  };
+  const redo = () => {
+    const next = future.current.pop();
+    if (!next) return;
+    history.current.push(next);
+    restore(next);
+  };
+  const clear = () => {
+    const cv = canvasRef.current; if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const rect = cv.getBoundingClientRect();
+    ctx.fillStyle = '#FFFEFB';
+    ctx.fillRect(0, 0, rect.width, rect.height);
+    pushHistory();
+  };
+
+  const pos = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+  };
+
+  const start = (e) => {
+    e.preventDefault();
+    drawing.current = true;
+    last.current = pos(e);
+  };
+  const move = (e) => {
+    if (!drawing.current) return;
+    e.preventDefault();
+    const p = pos(e);
+    const ctx = canvasRef.current.getContext('2d');
+    ctx.strokeStyle = tool === 'eraser' ? '#FFFEFB' : color;
+    ctx.lineWidth = tool === 'eraser' ? size * 2.5 : size;
+    ctx.beginPath();
+    ctx.moveTo(last.current.x, last.current.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    last.current = p;
+  };
+  const end = () => {
+    if (!drawing.current) return;
+    drawing.current = false;
+    pushHistory();
+  };
+
+  return (
+    <section className="glass rounded-2xl p-3 sm:p-4 flex flex-col h-full">
+      {/* Tool row */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="flex items-center gap-1 bg-paper-deep/70 rounded-xl p-1">
+          {[
+            { id:'brush',  Ic:I.Brush  },
+            { id:'eraser', Ic:I.Eraser },
+            { id:'fill',   Ic:I.Bucket },
+          ].map(t => (
+            <button key={t.id} onClick={()=>setTool(t.id)}
+              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors
+                ${tool===t.id ? 'bg-ink text-paper shadow' : 'text-ink-soft hover:bg-white'}`}>
+              <t.Ic size={16}/>
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1 bg-paper-deep/70 rounded-xl p-1">
+          {SIZES.map(s => (
+            <button key={s} onClick={()=>setSize(s)}
+              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors
+                ${size===s ? 'bg-ink text-paper' : 'text-ink-soft hover:bg-white'}`}
+              title={`${s}px`}>
+              <span className="rounded-full bg-current" style={{ width: s+2, height: s+2 }}></span>
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {COLORS.map(c => (
+            <button key={c} onClick={()=>setColor(c)}
+              className={`w-7 h-7 rounded-full transition-all
+                ${color===c ? 'ring-2 ring-offset-2 ring-offset-paper ring-ink scale-110' : 'ring-1 ring-ink/15 hover:scale-110'}`}
+              style={{ background: c }}/>
+          ))}
+        </div>
+
+        <div className="ml-auto flex items-center gap-1 bg-paper-deep/70 rounded-xl p-1">
+          <button onClick={undo} className="w-9 h-9 rounded-lg flex items-center justify-center text-ink-soft hover:bg-white" title="Undo">
+            <I.Undo size={16}/>
+          </button>
+          <button onClick={redo} className="w-9 h-9 rounded-lg flex items-center justify-center text-ink-soft hover:bg-white" title="Redo">
+            <I.Redo size={16}/>
+          </button>
+          <button onClick={clear} className="w-9 h-9 rounded-lg flex items-center justify-center text-rose-splat hover:bg-rose-splat/10" title="Clear">
+            <I.Trash size={16}/>
+          </button>
+        </div>
+      </div>
+
+      {/* Canvas */}
+      <div className="relative flex-1 rounded-xl overflow-hidden bg-[#FFFEFB] shadow-inner border border-ink/10"
+        style={{cursor: tool==='eraser' ? 'cell' : 'crosshair'}}>
+        <canvas ref={canvasRef} className="w-full h-full block touch-none"
+          onMouseDown={start} onMouseMove={move} onMouseUp={end} onMouseLeave={end}
+          onTouchStart={start} onTouchMove={move} onTouchEnd={end}
+        />
+        {/* Cute paper corners */}
+        <span className="absolute top-2 left-2 font-hand text-ink-mute/60 text-base">it's astronaut, btw 🤫</span>
+      </div>
+
+      {/* Word options (drawer chooses) */}
+      <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <span className="text-[11px] uppercase tracking-wider font-bold text-ink-mute">Your word</span>
+        <div className="flex items-center gap-2 bg-amber-soft/40 border border-amber-brand/40 px-3 py-1.5 rounded-full">
+          <I.Star size={12} className="text-amber-brand"/>
+          <span className="font-display font-bold text-ink">ASTRONAUT</span>
+          <span className="text-[11px] text-ink-mute">9 letters</span>
+        </div>
+        <span className="text-[11px] text-ink-mute hidden sm:inline">— don't say it out loud :)</span>
+      </div>
+    </section>
+  );
+};
+
+/* ─── Live chat ─────────────────────────────────────────────────────── */
+const initialMessages = [
+  { who:'@nori',   text:'is it a person?',          kind:'guess' },
+  { who:'@buns',   text:'spaceman??',                kind:'guess' },
+  { who:'system',  text:'@buns guessed close — +50',  kind:'close' },
+  { who:'@toko',   text:'this is so unfair lmao',     kind:'chat' },
+  { who:'@huxley', text:'(no spoilers)',              kind:'chat' },
+  { who:'@nori',   text:'astronaut!',                 kind:'correct' },
+  { who:'system',  text:'@nori got it! +200 ink',     kind:'system' },
+];
+
+const LiveChat = () => {
+  const [messages, setMessages] = useState(initialMessages);
+  const [draft, setDraft] = useState('');
+  const scrollRef = useRef(null);
+  useEffect(()=>{
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
+
+  const send = (e) => {
+    e.preventDefault();
+    if (!draft.trim()) return;
+    setMessages(m => [...m, { who:'@maple', text:draft.trim(), kind:'guess' }]);
+    setDraft('');
+  };
+
+  const styleFor = (k) => ({
+    chat:    'bg-white/60 text-ink',
+    guess:   'bg-white/60 text-ink',
+    close:   'bg-amber-soft/50 text-ink border border-amber-brand/30',
+    correct: 'bg-mint-splat/15 text-mint-splat font-semibold border border-mint-splat/30',
+    system:  'bg-indigo-brand/10 text-indigo-brand font-semibold border border-indigo-brand/20',
+  }[k] || 'bg-white/60 text-ink');
+
+  return (
+    <aside className="glass rounded-2xl p-4 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-3 px-1">
+        <h3 className="font-display font-bold text-ink">Chat</h3>
+        <span className="flex items-center gap-1 text-[11px] text-mint-splat font-semibold">
+          <span className="w-1.5 h-1.5 bg-mint-splat rounded-full animate-pulse"></span>
+          live
+        </span>
+      </div>
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1 space-y-1.5">
+        {messages.map((m,i)=>(
+          <motion.div key={i}
+            initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
+            className={`px-3 py-2 rounded-xl text-sm ${styleFor(m.kind)}`}>
+            {m.who !== 'system' && <span className="font-semibold text-ink-soft mr-1.5">{m.who}:</span>}
+            {m.text}
+          </motion.div>
+        ))}
+      </div>
+
+      <form onSubmit={send} className="mt-3 flex items-center gap-2">
+        <button type="button" className="text-ink-mute hover:text-ink p-2"><I.Smile size={18}/></button>
+        <input
+          value={draft} onChange={(e)=>setDraft(e.target.value)}
+          placeholder="type your guess…"
+          className="flex-1 bg-white/80 border border-ink/10 rounded-xl px-3 py-2.5 outline-none focus:border-indigo-brand focus:ring-2 focus:ring-indigo-brand/20 text-sm"
+        />
+        <motion.button
+          whileHover={{ y:-1 }} whileTap={{ scale:0.95 }}
+          className="bg-indigo-brand text-paper p-2.5 rounded-xl shadow-[0_3px_0_-1px_#1F1B5C]">
+          <I.Send size={16}/>
+        </motion.button>
+      </form>
+    </aside>
+  );
+};
+
+/* ─── Page ──────────────────────────────────────────────────────────── */
+function GameRoom() {
+  const [time, setTime] = useState(43);
+  const [players, setPlayers] = useState(initialPlayers);
+
+  // Tick timer
+  useEffect(()=>{
+    const t = setInterval(()=> setTime(s => s > 0 ? s - 1 : 60), 1000);
+    return ()=> clearInterval(t);
+  }, []);
+
+  // Simulate score changes (so leaderboard rows animate up/down)
+  useEffect(()=>{
+    const t = setInterval(()=>{
+      setPlayers(prev => {
+        const next = prev.map(p => ({...p}));
+        const i = Math.floor(Math.random() * next.length);
+        const delta = Math.random() < 0.4 ? 200 : Math.random() < 0.7 ? 100 : 50;
+        next[i].score += delta;
+        return next;
+      });
+    }, 3500);
+    return ()=> clearInterval(t);
+  }, []);
+
+  return (
+    <div className="relative min-h-screen w-full">
+      <TopBar time={time} round={3} totalRounds={5}/>
+
+      <main className="relative z-10 max-w-[1400px] mx-auto px-4 lg:px-6 pt-4 pb-6">
+        <div className="grid lg:grid-cols-[260px_minmax(0,1fr)_300px] gap-4 h-[calc(100vh-7.5rem)] min-h-[640px]">
+          <Leaderboard players={players}/>
+          <DrawingCanvas/>
+          <LiveChat/>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<GameRoom/>);
+</script>
+</body>
+</html>
