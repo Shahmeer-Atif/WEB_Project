@@ -768,7 +768,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
 
   const handleDraw = useCallback((event: DrawEvent) => {
     const now = Date.now()
-    if (event.type === 'draw' && now - lastEmitRef.current < 16) return // throttle to ~60fps
+   
     lastEmitRef.current = now
     const socket = getSocket()
     socket.emit('draw:stroke', { roomId, ...event })
