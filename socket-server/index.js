@@ -13,13 +13,9 @@ const ALLOWED_ORIGINS = [
 
 const io = new Server(httpServer, {
   cors: {
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true)
-      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
-      callback(new Error(`CORS blocked: ${origin}`))
-    },
+    origin: '*',
     methods: ['GET', 'POST'],
-    credentials: true,
+    credentials: false,
   },
 })
 
