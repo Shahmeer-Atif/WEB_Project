@@ -70,15 +70,31 @@ function startTurn(roomId) {
     drawerSocket.emit('round:word', { word: room.currentWord })
   }
 
-  io.to(roomId).emit('round:start', {
-    drawerId: room.currentDrawer,
-    wordLength: room.currentWord.length,
-    hint: '_'.repeat(room.currentWord.length),
-    timeLeft: room.timeLeft,
-    round: room.round,
-    totalRounds: room.totalRounds,
-  })
+  // Tell drawer — includes the word directly
+io.to(room.currentDrawer).emit('round:start', {
+  drawerId: room.currentDrawer,
+  wordForDrawer: room.currentWord,   // ← word included for drawer only
+  wordLength: room.currentWord.length,
+  hint: room.currentWord,            // drawer sees actual letters
+  timeLeft: room.timeLeft,
+  round: room.round,
+  totalRounds: room.totalRounds,
+})
 
+// Tell everyone else — no word
+const roomSockets = io.sockets.adapter.rooms.get(roomId)
+roomSockets?.forEach(socketId => {
+  if (socketId !== room.currentDrawer) {
+    io.to(socketId).emit('round:start', {
+      drawerId: room.currentDrawer,
+      wordLength: room.currentWord.length,
+      hint: '_'.repeat(room.currentWord.length),
+      timeLeft: room.timeLeft,
+      round: room.round,
+      totalRounds: room.totalRounds,
+    })
+  }
+})
   broadcastRoomState(roomId)
 
   clearInterval(room.timerInterval)

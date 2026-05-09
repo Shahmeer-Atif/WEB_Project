@@ -579,18 +579,18 @@ export default function GameRoomClient({ roomId, user }: Props) {
       setTimeLeft(timeLeft)
     })
 
-    socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round }) => {
-      setCurrentDrawerId(drawerId)
-      setWordLength(wordLength)
-      setHint(hint)
-      setTimeLeft(timeLeft)
-      setRound(round)
-      setPhase('drawing')
-      setMyWord('')
-      setRevealWord('')
-      setMessages([])
-      setExternalClear(v => v + 1)
-    })
+    socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round, wordForDrawer }) => {
+  setCurrentDrawerId(drawerId)
+  setWordLength(wordLength)
+  setHint(hint)
+  setTimeLeft(timeLeft)
+  setRound(round)
+  setPhase('drawing')
+  setMyWord(wordForDrawer || '')  // ← set word immediately if drawer
+  setRevealWord('')
+  setMessages([])
+  setExternalClear(v => v + 1)
+})
 
     socket.on('round:word', ({ word }) => setMyWord(word))
 
