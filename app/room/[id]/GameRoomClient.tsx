@@ -391,7 +391,7 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, externalDraw, externalClear 
   onDraw: (e: DrawEvent) => void
   onClear: () => void
   externalDraw: DrawEvent | null
-  externalClear: boolean
+    externalClear: number
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDrawingRef = useRef(false)
@@ -654,7 +654,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
 
   // Canvas sync
   const [externalDraw, setExternalDraw] = useState<DrawEvent | null>(null)
-  const [externalClear, setExternalClear] = useState(false)
+  const [externalClear, setExternalClear] = useState(0)
 
   // Throttle draw emit
   const lastEmitRef = useRef(0)
@@ -694,7 +694,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
       setRevealWord('')
       setMessages([])
       // Clear canvas for new round
-      setExternalClear(v => !v)
+      setExternalClear(v => v + 1)
     })
 
     // Only sent to the drawer
@@ -729,8 +729,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
     })
 
     socket.on('draw:clear', () => {
-      setExternalClear(v => !v)
-    })
+      setExternalClear(v => v + 1)})
 
     socket.on('chat:message', ({ userId, username, message, type }) => {
       setMessages(prev => [...prev, {
