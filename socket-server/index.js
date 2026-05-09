@@ -5,9 +5,19 @@ const { Server } = require('socket.io')
 const app = express()
 const httpServer = createServer(app)
 
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'https://web-project-seven-orpin.vercel.app',
+  process.env.FRONTEND_URL,
+].filter(Boolean)
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true)
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
+      callback(new Error(`CORS blocked: ${origin}`))
+    },
     methods: ['GET', 'POST'],
     credentials: true,
   },
