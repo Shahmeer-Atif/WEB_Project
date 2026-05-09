@@ -17,8 +17,9 @@ const io = new Server(httpServer, {
     methods: ['GET', 'POST'],
     credentials: false,
   },
+  allowUpgrades: true,
+  transports: ['websocket', 'polling'],
 })
-
 // ── In-memory game state (Redis would replace this in production) ────────────
 // Structure: { [roomId]: { players, currentDrawer, word, round, scores, timer } }
 const rooms = new Map()
