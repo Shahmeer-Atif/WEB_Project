@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     await User.findByIdAndUpdate(user._id, { lastSeen: new Date() })
 
     // ── Sign JWT and attach to response as httpOnly cookie ──────────────────
-    const token = signToken({
+    const token = await signToken({
       userId: user._id.toString(),
       username: user.username,
       role: user.role,
