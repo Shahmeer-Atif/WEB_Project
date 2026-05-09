@@ -134,3 +134,5 @@ inkblot/
 | Client-side validation  | `app/page.tsx` validators             |
 | Server-side validation  | All API routes sanitize inputs        |
 | Session management      | httpOnly JWT cookie, 7-day expiry     |
+
+

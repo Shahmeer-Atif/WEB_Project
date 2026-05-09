@@ -510,21 +510,27 @@ export default function LobbyClient({ user }: Props) {
     router.refresh()
   }
 
-  const handleQuickPlay = () => {
-    setSearching(s => !s)
-    if (!searching) {
-      // Simulate finding a room — in real app this calls Socket.IO
-      setTimeout(() => {
-        router.push('/room/quick-' + Math.random().toString(36).slice(2, 8))
-      }, 1500)
-    }
+  const handleQuickPlay = async () => {
+  if (searching) { setSearching(false); return }
+  setSearching(true)
+  try {
+    const res = await fetch('/api/rooms')
+    const data = await res.json()
+    router.push(`/room/${data.roomId}`)
+  } catch {
+    setSearching(false)
   }
+}
 
-  const handleCreateRoom = async (settings: RoomSettings) => {
-    // TODO: POST /api/rooms to create room in DB, then redirect
-    const roomId = 'room-' + Math.random().toString(36).slice(2, 8)
-    router.push(`/room/${roomId}`)
-  }
+const handleCreateRoom = async (settings: RoomSettings) => {
+  const res = await fetch('/api/rooms', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  })
+  const data = await res.json()
+  router.push(`/room/${data.roomId}`)
+}
 
   return (
     <div style={{
