@@ -5,7 +5,7 @@ import { getAuthFromRequest } from '@/lib/auth'
 
 // ── GET /api/admin/users — list all users ───────────────────────────────────
 export async function GET(req: NextRequest) {
-  const auth = getAuthFromRequest(req)
+  const auth = await getAuthFromRequest(req)
 
   // Double-check role even though middleware already guards this route
   if (!auth || auth.role !== 'admin') {
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 
 // ── PATCH /api/admin/users — update a user's role or active status ──────────
 export async function PATCH(req: NextRequest) {
-  const auth = getAuthFromRequest(req)
+  const auth = await getAuthFromRequest(req)
 
   if (!auth || auth.role !== 'admin') {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
