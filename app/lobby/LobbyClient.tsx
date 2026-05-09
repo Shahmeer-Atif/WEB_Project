@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { JWTPayload } from '@/lib/jwt'
+import FriendsPanel from '@/components/FriendsPanel'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface Props {
   user: JWTPayload
 }
@@ -19,7 +19,6 @@ interface RoomSettings {
 
 const WORD_OF_DAY = 'PARADOX'
 
-// ─── Icon helper ──────────────────────────────────────────────────────────────
 const Icon = ({ path, size = 18 }: { path: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -33,25 +32,20 @@ const ICONS = {
   fire:    'M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 1-5 2 1 3 0 4-5Z',
   trophy:  'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM17 5h3v3a3 3 0 0 1-3 3M7 5H4v3a3 3 0 0 0 3 3',
   users:   'M16 11a3.5 3.5 0 1 0 0-7M22 20a6.5 6.5 0 0 0-5-6.3M9 8a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0ZM2.5 20a6.5 6.5 0 0 1 13 0',
-  bell:    'M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 21a2 2 0 0 0 4 0',
-  coin:    'M12 3a9 9 0 1 0 0 18A9 9 0 0 0 12 3ZM9 9h4a2 2 0 0 1 0 4H9m0 0h5a2 2 0 0 1 0 4H9m1-8v10',
   sparkle: 'M12 3v4M12 17v4M3 12h4M17 12h4m-13.4-6.4 2.8 2.8m7.2 7.2 2.8 2.8m0-12.8-2.8 2.8m-7.2 7.2-2.8 2.8',
-  lock:    'M4 11h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V11ZM8 11V7a4 4 0 0 1 8 0v4',
-  globe:   'M12 3a9 9 0 1 0 0 18A9 9 0 0 0 12 3ZM3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z',
+  logout:  'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
   dice:    'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z',
   arrow:   'M5 12h14m-6-7 7 7-7 7',
-  logout:  'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
-  shield:  'M12 2l8 4v6c0 5-3.3 9.3-8 11-4.7-1.7-8-6-8-11V6l8-4Z',
+  rooms:   'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
 }
 
-// ─── Wordmark ─────────────────────────────────────────────────────────────────
 const Wordmark = () => (
   <a href="/lobby" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
     <div style={{
       width: 36, height: 36, borderRadius: 10, background: '#312E81',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       transform: 'rotate(-6deg)', boxShadow: '0 5px 0 -2px #1F1B5C',
-      position: 'relative', flexShrink: 0, transition: 'transform 0.2s',
+      position: 'relative', flexShrink: 0,
     }}>
       <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#FBF6EC', fontSize: 20, lineHeight: 1 }}>i</span>
       <span style={{ position: 'absolute', top: -3, right: -3, width: 10, height: 10, borderRadius: '50%', background: '#F59E0B' }} />
@@ -63,8 +57,9 @@ const Wordmark = () => (
   </a>
 )
 
-// ─── Top Nav ──────────────────────────────────────────────────────────────────
-const TopNav = ({ user, onLogout }: { user: JWTPayload; onLogout: () => void }) => (
+const TopNav = ({ user, onLogout, onFriendsOpen, pendingCount }: {
+  user: JWTPayload; onLogout: () => void; onFriendsOpen: () => void; pendingCount: number
+}) => (
   <header style={{
     position: 'relative', zIndex: 30,
     maxWidth: 1280, margin: '0 auto',
@@ -93,7 +88,7 @@ const TopNav = ({ user, onLogout }: { user: JWTPayload; onLogout: () => void }) 
         </a>
       ))}
     </nav>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       {/* Coins */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
@@ -105,6 +100,26 @@ const TopNav = ({ user, onLogout }: { user: JWTPayload; onLogout: () => void }) 
         </svg>
         <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 14 }}>2,480</span>
       </div>
+
+      {/* Friends button */}
+      <button onClick={onFriendsOpen} style={{
+        position: 'relative',
+        display: 'flex', alignItems: 'center', gap: 6,
+        background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)',
+        borderRadius: 999, padding: '6px 14px',
+        fontSize: 13, fontWeight: 600, color: '#2A2545', cursor: 'pointer',
+      }}>
+        👥 Friends
+        {pendingCount > 0 && (
+          <span style={{
+            position: 'absolute', top: -4, right: -4,
+            width: 18, height: 18, borderRadius: '50%',
+            background: '#EC4899', color: '#fff', fontSize: 10, fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>{pendingCount}</span>
+        )}
+      </button>
+
       {/* User pill */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
@@ -117,7 +132,7 @@ const TopNav = ({ user, onLogout }: { user: JWTPayload; onLogout: () => void }) 
           fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 13,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          {user.username[0].toUpperCase()}
+          {user.username?.[0]?.toUpperCase() ?? '?'}
         </div>
         <div style={{ lineHeight: 1.2 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: '#1B1830' }}>@{user.username}</div>
@@ -126,6 +141,7 @@ const TopNav = ({ user, onLogout }: { user: JWTPayload; onLogout: () => void }) 
           </div>
         </div>
       </div>
+
       {/* Logout */}
       <button onClick={onLogout} title="Log out" style={{
         width: 34, height: 34, borderRadius: '50%',
@@ -139,7 +155,6 @@ const TopNav = ({ user, onLogout }: { user: JWTPayload; onLogout: () => void }) 
   </header>
 )
 
-// ─── Quick Play Card ──────────────────────────────────────────────────────────
 const QuickPlayCard = ({ onQuickPlay, searching }: { onQuickPlay: () => void; searching: boolean }) => (
   <div style={{
     background: 'linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.5))',
@@ -149,13 +164,10 @@ const QuickPlayCard = ({ onQuickPlay, searching }: { onQuickPlay: () => void; se
     borderRadius: 24, padding: '28px 32px',
     position: 'relative', overflow: 'hidden',
   }}>
-    {/* Tape */}
     <div style={{ position: 'absolute', top: -8, left: 40, width: 64, height: 20, background: 'rgba(252,211,77,0.8)', transform: 'rotate(-6deg)', borderRadius: 2, zIndex: 20 }} />
-    {/* Decorative blob */}
     <svg viewBox="0 0 200 200" style={{ position: 'absolute', right: -48, bottom: -48, width: 280, height: 280, opacity: 0.15, pointerEvents: 'none' }}>
       <path d="M100 10c25 5 60 0 70 30s-10 50 0 80-30 60-60 60-70-10-80-40 10-50-10-80 50-55 80-50z" fill="#312E81" />
     </svg>
-
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
       <div>
         <div style={{ fontFamily: "'Caveat', cursive", color: '#F59E0B', fontSize: 22, lineHeight: 1, marginBottom: 2 }}>jump straight in →</div>
@@ -170,14 +182,11 @@ const QuickPlayCard = ({ onQuickPlay, searching }: { onQuickPlay: () => void; se
         184 rooms · &lt;5s wait
       </div>
     </div>
-
     <p style={{ color: '#2A2545', fontSize: 15, marginBottom: 28, maxWidth: 440, lineHeight: 1.6 }}>
       We'll drop you into the next available room. 60-second rounds, 8 players, random words.{' '}
       <span style={{ fontFamily: "'Caveat', cursive", color: '#1B1830', fontSize: 18 }}>no thinking required.</span>
     </p>
-
     <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-      {/* Big pulse button */}
       <button onClick={onQuickPlay} style={{
         position: 'relative', width: 144, height: 144,
         background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0,
@@ -188,14 +197,7 @@ const QuickPlayCard = ({ onQuickPlay, searching }: { onQuickPlay: () => void; se
           animation: 'pulseRing 2s cubic-bezier(.3,.6,.4,1) infinite',
         }} />
         <span style={{
-          position: 'absolute', inset: 0, borderRadius: '50%',
-          background: 'rgba(245,158,11,0.25)',
-          animation: 'pulseRing 2s cubic-bezier(.3,.6,.4,1) infinite',
-          animationDelay: '0.7s',
-        }} />
-        <span style={{
-          position: 'absolute', inset: '10px',
-          borderRadius: '50%', background: '#312E81',
+          position: 'absolute', inset: '10px', borderRadius: '50%', background: '#312E81',
           boxShadow: '0 10px 0 -2px #1F1B5C',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           color: '#FBF6EC', transition: 'transform 0.15s',
@@ -209,8 +211,6 @@ const QuickPlayCard = ({ onQuickPlay, searching }: { onQuickPlay: () => void; se
           </span>
         </span>
       </button>
-
-      {/* Stats */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, minWidth: 180 }}>
         {[
           { label: 'Avg. round', value: '1m 12s' },
@@ -231,14 +231,9 @@ const QuickPlayCard = ({ onQuickPlay, searching }: { onQuickPlay: () => void; se
   </div>
 )
 
-// ─── Custom Room Card ─────────────────────────────────────────────────────────
 const CustomRoomCard = ({ onCreateRoom }: { onCreateRoom: (s: RoomSettings) => void }) => {
   const [settings, setSettings] = useState<RoomSettings>({
-    name: "my sketchbook",
-    maxPlayers: 8,
-    rounds: 5,
-    drawTime: 60,
-    isPrivate: false,
+    name: 'my sketchbook', maxPlayers: 8, rounds: 5, drawTime: 60, isPrivate: false,
   })
   const [creating, setCreating] = useState(false)
 
@@ -280,9 +275,7 @@ const CustomRoomCard = ({ onCreateRoom }: { onCreateRoom: (s: RoomSettings) => v
           <Icon path={ICONS.dice} size={18} />
         </button>
       </div>
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Room name */}
         <div>
           <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#5A5275', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Room name</label>
           <input
@@ -292,13 +285,10 @@ const CustomRoomCard = ({ onCreateRoom }: { onCreateRoom: (s: RoomSettings) => v
               width: '100%', background: 'rgba(255,255,255,0.8)',
               border: '1px solid rgba(27,24,48,0.1)', borderRadius: 12,
               padding: '10px 14px', fontSize: 14, color: '#1B1830',
-              outline: 'none', fontFamily: "'Inter', sans-serif",
-              boxSizing: 'border-box',
+              outline: 'none', fontFamily: "'Inter', sans-serif", boxSizing: 'border-box',
             }}
           />
         </div>
-
-        {/* Players + Rounds */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#5A5275', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Players</label>
@@ -313,8 +303,6 @@ const CustomRoomCard = ({ onCreateRoom }: { onCreateRoom: (s: RoomSettings) => v
             </div>
           </div>
         </div>
-
-        {/* Draw time slider */}
         <div>
           <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: '#5A5275', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
             <span>Draw time</span>
@@ -326,8 +314,6 @@ const CustomRoomCard = ({ onCreateRoom }: { onCreateRoom: (s: RoomSettings) => v
             style={{ width: '100%', accentColor: '#312E81' }}
           />
         </div>
-
-        {/* Privacy toggle */}
         <div>
           <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#5A5275', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Privacy</label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, padding: 4, background: 'rgba(27,24,48,0.05)', borderRadius: 14, position: 'relative' }}>
@@ -339,10 +325,7 @@ const CustomRoomCard = ({ onCreateRoom }: { onCreateRoom: (s: RoomSettings) => v
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1)',
             }} />
-            {[
-              { label: '🌐 Public', value: false },
-              { label: '🔒 Private', value: true },
-            ].map(opt => (
+            {[{ label: '🌐 Public', value: false }, { label: '🔒 Private', value: true }].map(opt => (
               <button key={String(opt.value)} onClick={() => setSettings(s => ({ ...s, isPrivate: opt.value }))} style={{
                 position: 'relative', zIndex: 1, padding: '8px 0',
                 background: 'none', border: 'none', cursor: 'pointer',
@@ -353,22 +336,15 @@ const CustomRoomCard = ({ onCreateRoom }: { onCreateRoom: (s: RoomSettings) => v
             ))}
           </div>
         </div>
-
-        {/* Create button */}
-        <button
-          onClick={handleCreate}
-          disabled={creating}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            background: creating ? '#5A5275' : '#312E81',
-            color: '#FBF6EC', border: 'none', cursor: creating ? 'not-allowed' : 'pointer',
-            fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: 17,
-            padding: '14px 0', borderRadius: 16,
-            boxShadow: creating ? 'none' : '0 6px 0 -1px #1F1B5C',
-            transition: 'background 0.2s',
-            marginTop: 4,
-          }}
-        >
+        <button onClick={handleCreate} disabled={creating} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          background: creating ? '#5A5275' : '#312E81',
+          color: '#FBF6EC', border: 'none', cursor: creating ? 'not-allowed' : 'pointer',
+          fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: 17,
+          padding: '14px 0', borderRadius: 16,
+          boxShadow: creating ? 'none' : '0 6px 0 -1px #1F1B5C',
+          transition: 'background 0.2s', marginTop: 4,
+        }}>
           <Icon path={ICONS.plus} size={18} />
           {creating ? 'Opening room…' : 'Open the room'}
           {!creating && <Icon path={ICONS.arrow} size={18} />}
@@ -378,30 +354,22 @@ const CustomRoomCard = ({ onCreateRoom }: { onCreateRoom: (s: RoomSettings) => v
   )
 }
 
-// ─── Word of the Day ──────────────────────────────────────────────────────────
 const WordOfDay = () => {
   const [revealed, setRevealed] = useState<boolean[]>(Array(WORD_OF_DAY.length).fill(false))
-
   useEffect(() => {
     WORD_OF_DAY.split('').forEach((_, i) => {
       setTimeout(() => setRevealed(r => r.map((v, idx) => idx <= i ? true : v)), 300 + i * 180)
     })
   }, [])
-
   return (
-    <div style={{
-      background: '#312E81', borderRadius: 24, padding: '24px 28px',
-      position: 'relative', overflow: 'hidden',
-    }}>
+    <div style={{ background: '#312E81', borderRadius: 24, padding: '24px 28px', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.08, backgroundImage: 'radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '5px 5px', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', top: -24, right: -24, width: 112, height: 112, borderRadius: '50%', background: 'rgba(245,158,11,0.25)', filter: 'blur(20px)' }} />
-
       <div style={{ position: 'relative' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <Icon path={ICONS.sparkle} size={16} />
           <span style={{ fontFamily: "'Caveat', cursive", color: 'rgba(252,211,77,0.9)', fontSize: 20 }}>word of the day</span>
         </div>
-
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
           {WORD_OF_DAY.split('').map((ch, i) => (
             <div key={i} style={{
@@ -409,20 +377,17 @@ const WordOfDay = () => {
               background: revealed[i] ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)',
               border: `1px solid ${revealed[i] ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: "'Fredoka', sans-serif", fontWeight: 700,
-              fontSize: 22, color: '#FBF6EC',
+              fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 22, color: '#FBF6EC',
               transition: 'background 0.4s, border 0.4s, opacity 0.4s',
               opacity: revealed[i] ? 1 : 0.3,
             }}>{ch}</div>
           ))}
         </div>
-
         <p style={{ color: 'rgba(251,246,236,0.7)', fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
           Guess this in any room today and earn{' '}
           <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: 'rgba(252,211,77,0.9)' }}>+500 ink</span>
           {' '}on top of the round bonus.
         </p>
-
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {['7 letters', 'noun', 'resets in 14h 22m'].map(t => (
             <span key={t} style={{ background: 'rgba(255,255,255,0.1)', color: '#FBF6EC', fontSize: 11, padding: '4px 10px', borderRadius: 999 }}>{t}</span>
@@ -433,7 +398,6 @@ const WordOfDay = () => {
   )
 }
 
-// ─── Streak Card ──────────────────────────────────────────────────────────────
 const StreakCard = () => (
   <div style={{
     background: '#F4ECDA', border: '1px solid rgba(27,24,48,0.1)',
@@ -466,7 +430,6 @@ const StreakCard = () => (
   </div>
 )
 
-// ─── Activity Feed ────────────────────────────────────────────────────────────
 const ActivityCard = () => {
   const items = [
     { who: '@huxley', verb: 'guessed', what: 'astronaut', pts: '+200', t: '2m' },
@@ -499,10 +462,18 @@ const ActivityCard = () => {
   )
 }
 
-// ─── Main Lobby Client ────────────────────────────────────────────────────────
 export default function LobbyClient({ user }: Props) {
   const router = useRouter()
   const [searching, setSearching] = useState(false)
+  const [friendsOpen, setFriendsOpen] = useState(false)
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    fetch('/api/friends')
+      .then(r => r.json())
+      .then(d => setPendingCount(d.pendingReceived?.length || 0))
+      .catch(() => {})
+  }, [])
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -511,46 +482,39 @@ export default function LobbyClient({ user }: Props) {
   }
 
   const handleQuickPlay = async () => {
-  if (searching) { setSearching(false); return }
-  setSearching(true)
-  try {
-    const res = await fetch('/api/rooms')
+    if (searching) { setSearching(false); return }
+    setSearching(true)
+    try {
+      const res = await fetch('/api/rooms')
+      const data = await res.json()
+      router.push(`/room/${data.roomId}`)
+    } catch {
+      setSearching(false)
+    }
+  }
+
+  const handleCreateRoom = async (settings: RoomSettings) => {
+    const res = await fetch('/api/rooms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    })
     const data = await res.json()
     router.push(`/room/${data.roomId}`)
-  } catch {
-    setSearching(false)
   }
-}
-
-const handleCreateRoom = async (settings: RoomSettings) => {
-  const res = await fetch('/api/rooms', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(settings),
-  })
-  const data = await res.json()
-  router.push(`/room/${data.roomId}`)
-}
 
   return (
     <div style={{
       minHeight: '100vh',
       backgroundColor: '#FBF6EC',
-      backgroundImage: `
-        radial-gradient(rgba(27,24,48,0.035) 1px, transparent 1px),
-        radial-gradient(rgba(27,24,48,0.025) 1px, transparent 1px)
-      `,
+      backgroundImage: `radial-gradient(rgba(27,24,48,0.035) 1px, transparent 1px), radial-gradient(rgba(27,24,48,0.025) 1px, transparent 1px)`,
       backgroundSize: '3px 3px, 7px 7px',
       backgroundPosition: '0 0, 1px 1px',
       fontFamily: "'Inter', system-ui, sans-serif",
     }}>
-      <TopNav user={user} onLogout={handleLogout} />
+      <TopNav user={user} onLogout={handleLogout} onFriendsOpen={() => setFriendsOpen(true)} pendingCount={pendingCount} />
 
-      <main style={{
-        maxWidth: 1280, margin: '0 auto',
-        padding: '32px 40px 48px',
-      }}>
-        {/* Page heading */}
+      <main style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 40px 48px' }}>
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontFamily: "'Caveat', cursive", color: '#F59E0B', fontSize: 24, lineHeight: 1, marginBottom: 4 }}>
             welcome back, {user.username} —
@@ -560,15 +524,11 @@ const handleCreateRoom = async (settings: RoomSettings) => {
           </h1>
         </div>
 
-        {/* Two-column grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24 }}>
-          {/* Left column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <QuickPlayCard onQuickPlay={handleQuickPlay} searching={searching} />
             <CustomRoomCard onCreateRoom={handleCreateRoom} />
           </div>
-
-          {/* Right column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <WordOfDay />
             <StreakCard />
@@ -577,7 +537,6 @@ const handleCreateRoom = async (settings: RoomSettings) => {
         </div>
       </main>
 
-      {/* Footer */}
       <footer style={{
         maxWidth: 1280, margin: '0 auto',
         padding: '20px 40px',
@@ -595,6 +554,13 @@ const handleCreateRoom = async (settings: RoomSettings) => {
           ))}
         </div>
       </footer>
+
+      {/* Friends Panel */}
+      <FriendsPanel
+        isOpen={friendsOpen}
+        onClose={() => setFriendsOpen(false)}
+        myUserId={user.userId}
+      />
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap');

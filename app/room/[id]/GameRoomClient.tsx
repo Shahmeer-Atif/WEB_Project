@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { JWTPayload } from '@/lib/jwt'
 import { getSocket, disconnectSocket } from '@/lib/socket'
+import AddFriendButton from '@/components/AddFriendButton'
+
 
 interface Props {
   roomId: string
@@ -145,6 +147,9 @@ const Leaderboard = ({ players, scores, currentDrawerId, mySocketId }: {
               </div>
               {isDrawer && <div style={{ fontSize: 10, color: '#5A5275' }}>drawing</div>}
             </div>
+            {!isMe && (
+  <AddFriendButton userId={p.userId} username={p.username} />
+)}
             <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#312E81', fontSize: 14 }}>{scores[p.id] || 0}</span>
           </div>
         )
