@@ -417,9 +417,10 @@ export default function GameRoomClient({ roomId, user }: Props) {
     const socket = getSocket()
     socket.connect()
     socket.on('connect', () => {
-      setSocketId(socket.id || '')
-      socket.emit('room:join', { roomId, username: user.username, userId: user.userId })
-    })
+  setSocketId(socket.id || '')
+  socket.emit('room:join', { roomId, username: user.username, userId: user.userId })
+  socket.emit('user:online', user.userId)  // ← add this line
+})
     socket.on('room:state', ({ players, currentDrawer, round, totalRounds, phase, timeLeft }) => {
       setPlayers(players); setCurrentDrawerId(currentDrawer || ''); setRound(round); setTotalRounds(totalRounds); setPhase(phase); setTimeLeft(timeLeft)
     })
