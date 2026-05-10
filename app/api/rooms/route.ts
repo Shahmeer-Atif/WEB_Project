@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db'
 import Room from '@/models/Room'
 import { getAuthFromRequest } from '@/lib/auth'
 import { nanoid } from 'nanoid'
+import bcrypt from 'bcryptjs'
 
 // ── GET /api/rooms — find an open room for quick play ─────────────────────────
 export async function GET(req: NextRequest) {
@@ -45,9 +46,14 @@ export async function POST(req: NextRequest) {
   if (!auth) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { name, maxPlayers, rounds, drawTime, isPrivate } = body
+  const { name, maxPlayers, rounds, drawTime, isPrivate, password } = body
 
   await connectDB()
+
+  let hashedPassword = ''
+  if (isPrivate && password) {
+    hashedPassword = await bcrypt.hash(password, 10)
+  }
 
   const roomId = 'room-' + nanoid(6)
   await Room.create({
@@ -58,6 +64,7 @@ export async function POST(req: NextRequest) {
     rounds: rounds || 5,
     drawTime: drawTime || 60,
     isPrivate: isPrivate || false,
+    password: hashedPassword,
     phase: 'waiting',
     playerCount: 0,
   })
