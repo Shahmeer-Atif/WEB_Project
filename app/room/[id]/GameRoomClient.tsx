@@ -18,7 +18,7 @@ const BRUSH_SIZES = [4, 8, 14, 22]
 
 const Icon = ({ d, size = 18 }: { d: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-    <path d={d} />
+    <path d={path} />
   </svg>
 )
 
@@ -45,13 +45,16 @@ const WordBar = ({ hint, wordLength, drawerName, isDrawer, word, phase }: { hint
   )
   if (phase === 'reveal' || phase === 'end') return null
 
+  // Ensure drawer always sees the word even if state briefly missed it
+  const displayStr = isDrawer ? (word || hint) : hint;
+
   return (
     <div style={{ padding: '8px 16px', background: isDrawer ? 'rgba(245,158,11,0.08)' : 'rgba(49,46,129,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: isDrawer ? '#B45309' : '#5A5275', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
         {isDrawer ? '✏️ Your word to draw' : `🎯 ${drawerName} is drawing — guess it!`}
       </div>
       <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {(isDrawer ? word : hint).split('').map((ch, i) => (
+        {displayStr.split('').map((ch, i) => (
           <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
             <div style={{ width: 22, height: 28, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 15, background: ch !== '_' ? (isDrawer ? 'rgba(245,158,11,0.25)' : 'rgba(49,46,129,0.1)') : 'transparent', border: ch !== '_' ? `1px solid ${isDrawer ? 'rgba(245,158,11,0.5)' : 'rgba(49,46,129,0.3)'}` : 'none', color: '#1B1830' }}>
               {ch !== '_' ? ch.toUpperCase() : ''}
@@ -126,7 +129,7 @@ const InviteModal = ({ roomId, roomName, onClose }: { roomId: string; roomName: 
 const Leaderboard = ({ players, scores, currentDrawerId, mySocketId, friendIds }: { players: Player[]; scores: Record<string, number>; currentDrawerId: string; mySocketId: string; friendIds: Set<string> }) => {
   const sorted = [...players].sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0))
   return (
-    <aside style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.65)', borderRadius: 12, padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 5, overflowY: 'auto', overflowX: 'hidden' }}>
+    <aside className="leaderboard-section" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.65)', borderRadius: 12, padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 5, overflowY: 'auto', overflowX: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2, flexShrink: 0 }}>
         <Icon d="M3 19h18l-2-11-4 4-4-7-4 7-4-4z" size={13} />
         <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 13 }}>Scores</span>
@@ -165,7 +168,7 @@ const ChatPanel = ({ messages, onSend, disabled, phase }: { messages: ChatMessag
   const handleSend = (e: React.FormEvent) => { e.preventDefault(); const msg = input.trim(); if (!msg) return; onSend(msg); setInput('') }
   const msgColor = (type: ChatMessage['type']) => type === 'correct' ? '#10B981' : type === 'system' ? '#312E81' : type === 'guessed' ? '#5A5275' : '#2A2545'
   return (
-    <div style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.65)', borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+    <div className="chat-section" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.65)', borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
       <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(27,24,48,0.06)', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
         <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" size={13} />
         <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 13 }}>{disabled ? 'Guesses' : 'Chat & Guesses'}</span>
@@ -277,8 +280,7 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, external
     if (!isDrawer || !isDrawingRef.current) return; e.preventDefault()
     const ctx = getCtx(); if (!ctx) return; const pos = getPos(e)
     drawSegment(ctx, lastPosRef.current.x, lastPosRef.current.y, pos.x, pos.y, color, brushSize, tool === 'eraser')
-    onDraw({ ...pos, color: tool === 'eraser' ? 'eraser' : color, size: brushSize, type: 'draw' })
-    lastPosRef.current = pos
+    onDraw({ ...pos, color: tool === 'eraser' ? 'eraser' : color, size: brushSize, type: 'draw' }); lastPosRef.current = pos
   }
 
   const stopDrawing = () => {
@@ -300,11 +302,17 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, external
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0 }}>
+    <div className="canvas-section" style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0, width: '100%' }}>
       {isDrawer && <DrawToolbar color={color} setColor={setColor} brushSize={brushSize} setBrushSize={setBrushSize} tool={tool} setTool={setTool} onUndo={handleUndo} onClear={handleClear} />}
-      <div style={{ position: 'relative', background: '#FFFFFF', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 16px rgba(31,27,92,0.1)', border: isDrawer ? '2px solid rgba(49,46,129,0.2)' : '2px solid rgba(27,24,48,0.06)', flex: 1 }}>
-        <canvas ref={canvasRef} width={800} height={500} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ display: 'block', width: '100%', height: '100%', cursor: !isDrawer ? 'default' : tool === 'eraser' ? 'cell' : 'crosshair', touchAction: 'none' }} />
-        {!isDrawer && <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', borderRadius: 7, padding: '3px 8px', fontSize: 10, color: '#5A5275', fontWeight: 600 }}>👁 spectating</div>}
+      
+      {/* This wrapper strictly locks the canvas aspect ratio so it's identical for drawers and guessers. 
+        It prevents the "straight lines offset" bug.
+      */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, width: '100%' }}>
+        <div style={{ position: 'relative', width: '100%', maxHeight: '100%', aspectRatio: '8/5', background: '#FFFFFF', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 16px rgba(31,27,92,0.1)', border: isDrawer ? '2px solid rgba(49,46,129,0.2)' : '2px solid rgba(27,24,48,0.06)' }}>
+          <canvas ref={canvasRef} width={800} height={500} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ display: 'block', width: '100%', height: '100%', cursor: !isDrawer ? 'default' : tool === 'eraser' ? 'cell' : 'crosshair', touchAction: 'none' }} />
+          {!isDrawer && <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', borderRadius: 7, padding: '3px 8px', fontSize: 10, color: '#5A5275', fontWeight: 600 }}>👁 spectating</div>}
+        </div>
       </div>
     </div>
   )
@@ -393,14 +401,11 @@ export default function GameRoomClient({ roomId, user }: Props) {
     socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round, wordForDrawer, totalRounds }) => {
       setCurrentDrawerId(drawerId); setWordLength(wordLength); setHint(hint)
       setTimeLeft(timeLeft); setRound(round); setPhase('drawing')
-      // wordForDrawer is only sent when you ARE the drawer
-      // Always update myWord — empty string for guessers, actual word for drawer
       setMyWord(wordForDrawer || '')
       setRevealWord(''); setMessages([]); setExternalClear(v => v + 1)
       if (totalRounds) setTotalRounds(totalRounds)
     })
 
-    // Backup: server also sends round:word separately for the drawer
     socket.on('round:word', ({ word }) => {
       setMyWord(word)
     })
@@ -442,7 +447,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
     <div style={{ height: '100svh', backgroundColor: '#FBF6EC', backgroundImage: `radial-gradient(rgba(27,24,48,0.03) 1px,transparent 1px)`, backgroundSize: '4px 4px', fontFamily: "'Inter',system-ui,sans-serif", display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* ── Compact header ── */}
-      <header style={{ flexShrink: 0, padding: '6px 10px' }}>
+      <header style={{ flexShrink: 0, padding: '6px 10px', zIndex: 50, position: 'relative' }}>
         <div style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 12, padding: '7px 12px', boxShadow: '0 2px 10px rgba(31,27,92,0.07)' }}>
 
           {/* Row 1: logo | round/room | timer | invite | leave */}
@@ -481,7 +486,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
       <WordBar hint={hint} wordLength={wordLength} drawerName={drawerName} isDrawer={isDrawer} word={myWord} phase={phase} />
 
       {/* ── Main game grid ── */}
-      <main style={{ flex: 1, padding: '8px 10px 10px', display: 'grid', gridTemplateColumns: '160px 1fr 190px', gridTemplateRows: '1fr', gap: 8, minHeight: 0 }} className="game-main">
+      <main className="game-main" style={{ flex: 1, padding: '8px 10px 10px', display: 'grid', gridTemplateColumns: '160px 1fr 190px', gridTemplateRows: '1fr', gap: 8, minHeight: 0 }}>
         <Leaderboard players={players} scores={scores} currentDrawerId={currentDrawerId} mySocketId={socketId} friendIds={friendIds} />
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <DrawingCanvas isDrawer={isDrawer} onDraw={handleDraw} onClear={handleClear} onUndo={handleUndo} onSnapshot={handleSnapshot} externalDraw={externalDraw} externalClear={externalClear} externalSync={externalSync} />
@@ -509,24 +514,29 @@ export default function GameRoomClient({ roomId, user }: Props) {
         /* Mobile: stack layout */
         @media (max-width: 768px) {
           .game-main {
-            grid-template-columns: 1fr !important;
-            grid-template-rows: auto 1fr auto !important;
+            display: flex !important;
+            flex-direction: column !important;
             overflow-y: auto !important;
-            gap: 8px !important;
+            gap: 12px !important;
           }
-          .game-main > aside {
-            max-height: 140px !important;
-            overflow-y: auto !important;
+          .canvas-section {
+            order: 1 !important;
+            flex-shrink: 0 !important;
+            min-height: min-content !important;
+            width: 100% !important;
           }
-          .game-main > div:nth-child(2) {
-            min-height: 220px !important;
+          .leaderboard-section {
+            order: 2 !important;
+            max-height: 160px !important;
+            flex-shrink: 0 !important;
           }
-          .game-main > div:last-child {
-            min-height: 200px !important;
-            max-height: 240px !important;
+          .chat-section {
+            order: 3 !important;
+            flex: 1 !important;
+            min-height: 300px !important;
           }
-          header { padding: 5px 8px !important; }
-          main { padding: 6px 8px 8px !important; }
+          header { padding: 8px 12px !important; }
+          main { padding: 8px 12px 12px !important; }
         }
       `}</style>
     </div>
