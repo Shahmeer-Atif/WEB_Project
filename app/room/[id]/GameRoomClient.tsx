@@ -301,7 +301,10 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, external
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0 }}>
-      {isDrawer && <DrawToolbar color={color} setColor={setColor} brushSize={brushSize} setBrushSize={setBrushSize} tool={tool} setTool={setTool} onUndo={handleUndo} onClear={handleClear} />}
+      {/* Toolbar is always rendered but hidden for non-drawers to maintain consistent layout */}
+      <div style={{ visibility: isDrawer ? 'visible' : 'hidden', height: isDrawer ? 'auto' : 0, overflow: 'hidden' }}>
+        <DrawToolbar color={color} setColor={setColor} brushSize={brushSize} setBrushSize={setBrushSize} tool={tool} setTool={setTool} onUndo={handleUndo} onClear={handleClear} />
+      </div>
       <div style={{ position: 'relative', background: '#FFFFFF', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 16px rgba(31,27,92,0.1)', border: isDrawer ? '2px solid rgba(49,46,129,0.2)' : '2px solid rgba(27,24,48,0.06)', flex: 1 }}>
         <canvas ref={canvasRef} width={800} height={500} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ display: 'block', width: '100%', height: '100%', cursor: !isDrawer ? 'default' : tool === 'eraser' ? 'cell' : 'crosshair', touchAction: 'none' }} />
         {!isDrawer && <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', borderRadius: 7, padding: '3px 8px', fontSize: 10, color: '#5A5275', fontWeight: 600 }}>👁 spectating</div>}
@@ -510,20 +513,30 @@ export default function GameRoomClient({ roomId, user }: Props) {
         @media (max-width: 768px) {
           .game-main {
             grid-template-columns: 1fr !important;
-            grid-template-rows: auto 1fr auto !important;
+            grid-template-rows: auto minmax(280px, 45vh) 1fr !important;
             overflow-y: auto !important;
             gap: 8px !important;
           }
           .game-main > aside {
-            max-height: 140px !important;
+            max-height: 120px !important;
             overflow-y: auto !important;
+            order: 1;
           }
           .game-main > div:nth-child(2) {
-            min-height: 220px !important;
+            order: 2;
+            min-height: 280px !important;
+            height: 45vh !important;
+            flex: none !important;
+          }
+          .game-main > div:nth-child(2) > div {
+            min-height: 280px !important;
+            height: 45vh !important;
           }
           .game-main > div:last-child {
+            order: 3;
             min-height: 200px !important;
-            max-height: 240px !important;
+            max-height: none !important;
+            flex: 1 !important;
           }
           header { padding: 5px 8px !important; }
           main { padding: 6px 8px 8px !important; }
