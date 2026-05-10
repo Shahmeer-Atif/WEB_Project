@@ -82,8 +82,13 @@ const QuickPlayCard = ({ onQuickPlay, searching, onJoin }: { onQuickPlay: () => 
     if (!roomId.trim()) return
     setJoinError('')
     setJoining(true)
-    await onJoin(roomId.trim(), password)
-    setJoining(false)
+    try {
+      await onJoin(roomId.trim(), password)
+    } catch (e: any) {
+      setJoinError(e.message || 'Could not join room. Check the ID and password.')
+    } finally {
+      setJoining(false)
+    }
   }
 
   return (

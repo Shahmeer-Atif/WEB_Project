@@ -82,8 +82,8 @@ export default function FriendsPanel({ isOpen, onClose, myUserId }: Props) {
     if (!isOpen) return
     fetchFriends()
     fetchInvites()
-    // Poll invites every 15s while panel is open
-    const interval = setInterval(fetchInvites, 15000)
+    // Poll invites every 5s while panel is open
+    const interval = setInterval(fetchInvites, 5000)
     return () => clearInterval(interval)
   }, [isOpen])
 
@@ -362,6 +362,12 @@ export default function FriendsPanel({ isOpen, onClose, myUserId }: Props) {
           {/* ── Invites ── */}
           {tab === 'invites' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <span style={{ fontSize: 11, color: '#5A5275' }}>Updates every 5 seconds</span>
+                <button onClick={fetchInvites} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#312E81', fontSize: 12, fontWeight: 600, padding: '2px 6px' }}>
+                  ↻ Refresh
+                </button>
+              </div>
               {invites.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '32px 0' }}>
                   <div style={{ fontSize: 40, marginBottom: 8 }}>🎮</div>
