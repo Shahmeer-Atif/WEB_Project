@@ -12,7 +12,6 @@ const io = new Server(httpServer, {
 })
 
 const rooms = new Map()
-const userSockets = new Map() // Tracks online users: userId -> socketId
 
 function getActivePlayers(room) {
   return room.players.filter(p => p.connected)
@@ -54,6 +53,7 @@ function startTurn(roomId) {
     return
   }
 
+  // Make sure currentDrawer is still active — if not, pick first active player
   if (!active.find(p => p.id === room.currentDrawer)) {
     room.currentDrawer = active[0].id
   }
@@ -63,35 +63,23 @@ function startTurn(roomId) {
   room.timeLeft = room.drawTime
   room.currentWord = pickWord()
   room.strokeHistory = []
+  room.canvasSnapshot = null  // reset snapshot on new turn
 
+  // Send word privately to drawer
   const drawerSocket = io.sockets.sockets.get(room.currentDrawer)
   if (drawerSocket) {
     drawerSocket.emit('round:word', { word: room.currentWord })
   }
 
-  io.to(room.currentDrawer).emit('round:start', {
+  io.to(roomId).emit('round:start', {
     drawerId: room.currentDrawer,
-    wordForDrawer: room.currentWord,
     wordLength: room.currentWord.length,
-    hint: room.currentWord,
+    hint: '_'.repeat(room.currentWord.length),
     timeLeft: room.timeLeft,
     round: room.round,
     totalRounds: room.totalRounds,
   })
 
-  const roomSockets = io.sockets.adapter.rooms.get(roomId)
-  roomSockets?.forEach(socketId => {
-    if (socketId !== room.currentDrawer) {
-      io.to(socketId).emit('round:start', {
-        drawerId: room.currentDrawer,
-        wordLength: room.currentWord.length,
-        hint: '_'.repeat(room.currentWord.length),
-        timeLeft: room.timeLeft,
-        round: room.round,
-        totalRounds: room.totalRounds,
-      })
-    }
-  })
   broadcastRoomState(roomId)
 
   clearInterval(room.timerInterval)
@@ -128,12 +116,15 @@ function endTurn(roomId) {
       return
     }
 
+    // Advance to next drawer in rotation
     const currentIdx = active.findIndex(p => p.id === room.currentDrawer)
     const nextIdx = (currentIdx + 1) % active.length
     room.currentDrawer = active[nextIdx].id
 
+    // Track turns in this round
     room.turnsThisRound = (room.turnsThisRound || 0) + 1
 
+    // After everyone draws once, advance round
     if (room.turnsThisRound >= active.length) {
       room.turnsThisRound = 0
       room.round += 1
@@ -162,24 +153,6 @@ function endGame(roomId) {
 io.on('connection', (socket) => {
   console.log(`[SOCKET] Connected: ${socket.id}`)
 
-  // ── Track Online Users for Invites ──
-  socket.on('user:online', (userId) => {
-    userSockets.set(userId, socket.id)
-    socket.userId = userId 
-  })
-
-  // ── Handle Friend Invites ──
-  socket.on('invite:send', ({ toUserId, fromUsername, roomId }) => {
-    const targetSocketId = userSockets.get(toUserId)
-    if (targetSocketId) {
-      io.to(targetSocketId).emit('invite:receive', { 
-        id: Date.now().toString(), 
-        fromUsername, 
-        roomId 
-      })
-    }
-  })
-
   socket.on('room:join', ({ roomId, username, userId }) => {
     socket.join(roomId)
 
@@ -197,6 +170,7 @@ io.on('connection', (socket) => {
     const existing = room.players.find(p => p.userId === userId)
 
     if (existing) {
+      // Reconnect: update socket id, keep score
       const oldScore = room.scores.get(existing.id) || 0
       room.scores.delete(existing.id)
       existing.id = socket.id
@@ -210,6 +184,38 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('scores:update', { scores: Object.fromEntries(room.scores) })
     broadcastRoomState(roomId)
 
+    // ── Late joiner mid-game catch-up ─────────────────────────────────────────
+    if (room.phase === 'drawing') {
+      // Send them the round info (without the word)
+      socket.emit('round:start', {
+        drawerId: room.currentDrawer,
+        wordLength: room.currentWord.length,
+        hint: '_'.repeat(room.currentWord.length),
+        timeLeft: room.timeLeft,
+        round: room.round,
+        totalRounds: room.totalRounds,
+      })
+
+      // If we have a canvas snapshot, send it immediately
+      if (room.canvasSnapshot) {
+        socket.emit('draw:sync', { imageData: room.canvasSnapshot })
+      } else if (room.strokeHistory && room.strokeHistory.length > 0) {
+        // No snapshot — replay all strokes sequentially with small delay
+        let delay = 50
+        room.strokeHistory.forEach(group => {
+          if (!group || group.length === 0) return
+          group.forEach((stroke, i) => {
+            setTimeout(() => {
+              socket.emit('draw:stroke', stroke)
+            }, delay)
+            delay += 2 // 2ms between strokes — fast but ordered
+          })
+          delay += 10 // small gap between stroke groups
+        })
+      }
+    }
+
+    // Auto-start with 2+ players
     if (getActivePlayers(room).length >= 2 && room.phase === 'waiting') {
       room.currentDrawer = getActivePlayers(room)[0].id
       room.turnsThisRound = 0
@@ -226,17 +232,27 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('draw:stroke', { x, y, color, size, type })
   })
 
+  // Undo: drawer sends canvas snapshot, we broadcast to others
   socket.on('draw:undo', ({ roomId, imageData }) => {
     const room = rooms.get(roomId)
     if (!room || room.currentDrawer !== socket.id) return
     room.strokeHistory.pop()
+    room.canvasSnapshot = imageData  // store for late joiners
     socket.to(roomId).emit('draw:sync', { imageData })
+  })
+
+  // Drawer periodically sends canvas snapshot for late joiners
+  socket.on('draw:snapshot', ({ roomId, imageData }) => {
+    const room = rooms.get(roomId)
+    if (!room || room.currentDrawer !== socket.id) return
+    room.canvasSnapshot = imageData
   })
 
   socket.on('draw:clear', ({ roomId }) => {
     const room = rooms.get(roomId)
     if (!room || room.currentDrawer !== socket.id) return
     room.strokeHistory = []
+    room.canvasSnapshot = null  // cleared canvas = no snapshot needed
     socket.to(roomId).emit('draw:clear')
   })
 
@@ -272,10 +288,6 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`[SOCKET] Disconnected: ${socket.id}`)
-    
-    // Clean up online tracker
-    if (socket.userId) userSockets.delete(socket.userId)
-
     rooms.forEach((room, roomId) => {
       const player = room.players.find(p => p.id === socket.id)
       if (!player) return

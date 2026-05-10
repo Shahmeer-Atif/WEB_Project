@@ -231,7 +231,7 @@ const DrawToolbar = ({ color, setColor, brushSize, setBrushSize, onUndo, onClear
 )
 
 // ─── Drawing Canvas ───────────────────────────────────────────────────────────
-const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, externalDraw, externalClear, externalSync }: { isDrawer: boolean; onDraw: (e: DrawEvent) => void; onClear: () => void; onUndo: (img: string) => void; externalDraw: DrawEvent | null; externalClear: number; externalSync: string | null }) => {
+const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, externalDraw, externalClear, externalSync }: { isDrawer: boolean; onDraw: (e: DrawEvent) => void; onClear: () => void; onUndo: (img: string) => void; onSnapshot: (img: string) => void; externalDraw: DrawEvent | null; externalClear: number; externalSync: string | null }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDrawingRef = useRef(false)
   const lastPosRef = useRef({ x: 0, y: 0 })
@@ -294,7 +294,16 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, externalDraw, extern
     lastPosRef.current = pos
   }
 
-  const stopDrawing = () => { if (!isDrawer) return; isDrawingRef.current = false; onDraw({ x: 0, y: 0, color, size: brushSize, type: 'end' }) }
+  const stopDrawing = () => {
+    if (!isDrawer) return
+    isDrawingRef.current = false
+    onDraw({ x: 0, y: 0, color, size: brushSize, type: 'end' })
+    // After each stroke ends, send a snapshot for late joiners
+    const canvas = canvasRef.current
+    if (canvas) {
+      onSnapshot(canvas.toDataURL('image/png'))
+    }
+  }
 
   const handleUndo = () => {
     const ctx = getCtx(); const canvas = canvasRef.current; if (!ctx || !canvas) return
@@ -421,6 +430,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
   const handleDraw = useCallback((e: DrawEvent) => { getSocket().emit('draw:stroke', { roomId, ...e }) }, [roomId])
   const handleClear = useCallback(() => { getSocket().emit('draw:clear', { roomId }) }, [roomId])
   const handleUndo = useCallback((imageData: string) => { getSocket().emit('draw:undo', { roomId, imageData }) }, [roomId])
+  const handleSnapshot = useCallback((imageData: string) => { getSocket().emit('draw:snapshot', { roomId, imageData }) }, [roomId])
   const handleSendMessage = (message: string) => { getSocket().emit('chat:message', { roomId, message, userId: user.userId, username: user.username }) }
   const handleLeave = () => { disconnectSocket(); router.push('/lobby') }
 
@@ -487,7 +497,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
       <main className="game-main" style={{ flex: 1, padding: '0 14px 12px', display: 'grid', gridTemplateColumns: '180px 1fr 200px', gap: 10, minHeight: 0 }}>
         <Leaderboard players={players} scores={scores} currentDrawerId={currentDrawerId} mySocketId={socketId} friendIds={friendIds} myUserId={user.userId} />
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <DrawingCanvas isDrawer={isDrawer} onDraw={handleDraw} onClear={handleClear} onUndo={handleUndo} externalDraw={externalDraw} externalClear={externalClear} externalSync={externalSync} />
+          <DrawingCanvas isDrawer={isDrawer} onDraw={handleDraw} onClear={handleClear} onUndo={handleUndo} onSnapshot={handleSnapshot} externalDraw={externalDraw} externalClear={externalClear} externalSync={externalSync} />
           {phase === 'reveal' && <RevealOverlay word={revealWord} />}
           {phase === 'end' && <GameEndOverlay scores={scores} players={players} onLeave={handleLeave} />}
         </div>
