@@ -60,14 +60,14 @@ const TopNav = ({ user, onLogout, onFriendsOpen, pendingCount, invites, onInvite
     </nav>
     
     <div className="header-controls" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, zIndex: 2 }}>
-      <div className="coin-pill" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(252,211,77,0.35)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 999, padding: '5px 11px' }}>
+      <div className="coin-pill hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(252,211,77,0.35)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 999, padding: '5px 11px' }}>
         <span style={{ fontSize: 13 }}>🪙</span>
         <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 13 }}>2,480</span>
       </div>
       
       {/* Game Invites */}
       <button onClick={onInvitesOpen} className="nav-btn" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 5, background: invites.length > 0 ? '#312E81' : 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: invites.length > 0 ? '#fff' : '#2A2545', cursor: 'pointer' }}>
-        <Icon path={ICONS.bell} size={14} /> <span className="btn-text">Invites</span>
+        <Icon path={ICONS.bell} size={14} /> <span className="btn-text hide-on-mobile">Invites</span>
         {invites.length > 0 && (
           <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#EC4899', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {invites.length}
@@ -77,14 +77,14 @@ const TopNav = ({ user, onLogout, onFriendsOpen, pendingCount, invites, onInvite
 
       {/* Friends */}
       <button onClick={onFriendsOpen} className="nav-btn" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#2A2545', cursor: 'pointer' }}>
-        👥 <span className="btn-text">Friends</span>
+        👥 <span className="btn-text hide-on-mobile">Friends</span>
         {pendingCount > 0 && <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#EC4899', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pendingCount}</span>}
       </button>
       
       {/* User pill */}
       <div className="user-pill" style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 999, padding: '3px 10px 3px 3px' }}>
         <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#312E81', color: '#FBF6EC', fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{user.username?.[0]?.toUpperCase() ?? '?'}</div>
-        <div className="user-pill-text" style={{ lineHeight: 1.2 }}>
+        <div className="user-pill-text hide-on-mobile" style={{ lineHeight: 1.2 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#1B1830' }}>@{user.username}</div>
           <div style={{ fontSize: 9, color: '#5A5275' }}>{user.role === 'admin' ? '👑 Admin' : 'Sketcher'}</div>
         </div>
@@ -97,7 +97,7 @@ const TopNav = ({ user, onLogout, onFriendsOpen, pendingCount, invites, onInvite
   </header>
 )
 
-const QuickPlayCard = ({ onQuickPlay, searching, onJoin }: { onQuickPlay: () => void; searching: boolean; onJoin: (id: string, pw: string) => Promise<void> }) => {
+const QuickPlayCard = ({ onQuickPlay, searching, onJoin }: { onQuickPlay: () => void; searching: boolean; onJoin: (id: string, pw?: string) => Promise<void> }) => {
   const [roomId, setRoomId] = useState('')
   const [password, setPassword] = useState('')
   const [joinError, setJoinError] = useState('')
@@ -117,7 +117,7 @@ const QuickPlayCard = ({ onQuickPlay, searching, onJoin }: { onQuickPlay: () => 
   }
 
   return (
-    <div style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,255,255,0.58))', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.65)', boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset, 0 20px 40px -12px rgba(31,27,92,0.16)', borderRadius: 20, padding: '24px 28px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', height: '100%' }}>
+    <div className="quick-play-card" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,255,255,0.58))', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.65)', boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset, 0 20px 40px -12px rgba(31,27,92,0.16)', borderRadius: 20, padding: '24px 28px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', height: '100%' }}>
       <div style={{ position: 'absolute', top: -7, left: 36, width: 60, height: 18, background: 'rgba(252,211,77,0.85)', transform: 'rotate(-5deg)', borderRadius: 2, zIndex: 20 }} />
       <svg viewBox="0 0 200 200" style={{ position: 'absolute', right: -60, bottom: -60, width: 280, height: 280, opacity: 0.1, pointerEvents: 'none' }}>
         <path d="M100 10c25 5 60 0 70 30s-10 50 0 80-30 60-60 60-70-10-80-40 10-50-10-80 50-55 80-50z" fill="#312E81" />
@@ -147,6 +147,7 @@ const QuickPlayCard = ({ onQuickPlay, searching, onJoin }: { onQuickPlay: () => 
           </div>
         ))}
       </div>
+      
       <div style={{ marginTop: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <div style={{ flex: 1, height: 1, background: 'rgba(27,24,48,0.08)' }} />
@@ -421,6 +422,10 @@ export default function LobbyClient({ user }: Props) {
           }
           .quick-play-wrapper { 
             grid-row: span 1 !important; 
+            min-height: max-content !important;
+          }
+          .quick-play-card {
+            height: auto !important;
           }
           
           /* Header Wrapping for Mobile so Nav is visible */
