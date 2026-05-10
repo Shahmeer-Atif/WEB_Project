@@ -16,9 +16,10 @@ interface Friend { _id: string; username: string }
 const COLORS = ['#1B1830','#EC4899','#312E81','#F59E0B','#10B981','#EF4444','#8B5CF6','#3B82F6','#F97316','#84CC16','#06B6D4','#FFFFFF']
 const BRUSH_SIZES = [4, 8, 14, 22]
 
+// ✅ New
 const Icon = ({ d, size = 18 }: { d: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-    <path d={path} />
+    <path d={d} />
   </svg>
 )
 
