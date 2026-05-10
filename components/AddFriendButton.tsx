@@ -26,18 +26,34 @@ export default function AddFriendButton({ userId, username }: Props) {
     }
   }
 
-  const label = status === 'sending' ? '…' : status === 'sent' ? '✓ Sent!' : status === 'error' ? 'Already sent' : '+ Friend'
-  const bg = status === 'sent' ? '#10B981' : status === 'error' ? '#5A5275' : '#312E81'
+  if (status === 'sent') return (
+    <span style={{ fontSize: 9, fontWeight: 700, color: '#10B981', whiteSpace: 'nowrap' }}>✓ Added</span>
+  )
+
+  if (status === 'error') return (
+    <span style={{ fontSize: 9, fontWeight: 700, color: '#5A5275', whiteSpace: 'nowrap' }}>sent</span>
+  )
 
   return (
-    <button onClick={send} title={`Add @${username} as friend`} style={{
-      background: bg, color: '#FBF6EC', border: 'none',
-      borderRadius: 6, padding: '3px 8px', fontSize: 11, fontWeight: 600,
-      cursor: status === 'idle' ? 'pointer' : 'default',
-      transition: 'background 0.2s', whiteSpace: 'nowrap',
-      fontFamily: "'Inter', sans-serif",
-    }}>
-      {label}
+    <button
+      onClick={send}
+      disabled={status === 'sending'}
+      title={`Add @${username}`}
+      style={{
+        background: 'rgba(49,46,129,0.1)',
+        color: '#312E81',
+        border: '1px solid rgba(49,46,129,0.2)',
+        borderRadius: 6,
+        padding: '2px 6px',
+        fontSize: 9,
+        fontWeight: 700,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        lineHeight: 1.4,
+        flexShrink: 0,
+      }}
+    >
+      {status === 'sending' ? '…' : '+ Add'}
     </button>
   )
 }

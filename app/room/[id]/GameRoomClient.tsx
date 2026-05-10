@@ -138,11 +138,11 @@ const Leaderboard = ({ players, scores, currentDrawerId, mySocketId, friendIds, 
         const isMe = p.id === mySocketId
         const isDrawer = p.id === currentDrawerId
         return (
-          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 10, background: isMe ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.5)', border: isMe ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent', opacity: p.connected ? 1 : 0.4 }}>
-            <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#5A5275', width: 16, textAlign: 'center', fontSize: 11, flexShrink: 0 }}>{idx + 1}</span>
+          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 8px', borderRadius: 10, background: isMe ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.5)', border: isMe ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent', opacity: p.connected ? 1 : 0.4 }}>
+            <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#5A5275', width: 14, textAlign: 'center', fontSize: 10, flexShrink: 0 }}>{idx + 1}</span>
             <div style={{ position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#312E81', color: '#FBF6EC', fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{p.username?.[0]?.toUpperCase() ?? '?'}</div>
-              {isDrawer && <div style={{ position: 'absolute', top: -3, right: -3, width: 12, height: 12, borderRadius: '50%', background: '#F59E0B', fontSize: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #FBF6EC' }}>✏️</div>}
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#312E81', color: '#FBF6EC', fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{p.username?.[0]?.toUpperCase() ?? '?'}</div>
+              {isDrawer && <div style={{ position: 'absolute', top: -3, right: -3, width: 11, height: 11, borderRadius: '50%', background: '#F59E0B', fontSize: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #FBF6EC' }}>✏</div>}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: '#1B1830', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -150,12 +150,10 @@ const Leaderboard = ({ players, scores, currentDrawerId, mySocketId, friendIds, 
               </div>
               {isDrawer && <div style={{ fontSize: 9, color: '#F59E0B', fontWeight: 600 }}>drawing</div>}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
-              <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#312E81', fontSize: 13 }}>{scores[p.id] || 0}</span>
-              {!isMe && !friendIds.has(p.userId) && (
-                <AddFriendButton userId={p.userId} username={p.username} />
-              )}
-            </div>
+            <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#312E81', fontSize: 12, flexShrink: 0 }}>{scores[p.id] || 0}</span>
+            {!isMe && !friendIds.has(p.userId) && (
+              <AddFriendButton userId={p.userId} username={p.username} />
+            )}
           </div>
         )
       })}
