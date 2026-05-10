@@ -125,7 +125,7 @@ const InviteModal = ({ roomId, roomName, onClose }: { roomId: string; roomName: 
 }
 
 // ─── Leaderboard ──────────────────────────────────────────────────────────────
-const Leaderboard = ({ players, scores, currentDrawerId, mySocketId }: { players: Player[]; scores: Record<string, number>; currentDrawerId: string; mySocketId: string }) => {
+const Leaderboard = ({ players, scores, currentDrawerId, mySocketId, friendIds, myUserId }: { players: Player[]; scores: Record<string, number>; currentDrawerId: string; mySocketId: string; friendIds: Set<string>; myUserId: string }) => {
   const sorted = [...players].sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0))
   return (
     <aside style={{ background: 'linear-gradient(180deg,rgba(255,255,255,0.85),rgba(255,255,255,0.6))', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.65)', boxShadow: '0 2px 16px rgba(31,27,92,0.08)', borderRadius: 14, padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
@@ -152,7 +152,9 @@ const Leaderboard = ({ players, scores, currentDrawerId, mySocketId }: { players
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
               <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#312E81', fontSize: 13 }}>{scores[p.id] || 0}</span>
-              {!isMe && <AddFriendButton userId={p.userId} username={p.username} />}
+              {!isMe && !friendIds.has(p.userId) && (
+                <AddFriendButton userId={p.userId} username={p.username} />
+              )}
             </div>
           </div>
         )
@@ -375,7 +377,19 @@ export default function GameRoomClient({ roomId, user }: Props) {
   const [externalSync, setExternalSync] = useState<string | null>(null)
   const [showInvite, setShowInvite] = useState(false)
   const [roomName, setRoomName] = useState('')
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set())
   const isDrawer = socketId === currentDrawerId
+
+  // Fetch friend IDs so we don't show Add Friend button for existing friends
+  useEffect(() => {
+    fetch('/api/friends')
+      .then(r => r.json())
+      .then(d => {
+        const ids = new Set<string>((d.friends || []).map((f: { _id: string }) => f._id))
+        setFriendIds(ids)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const socket = getSocket()
@@ -473,7 +487,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
 
       {/* ── Main area ── */}
       <main className="game-main" style={{ flex: 1, padding: '0 14px 12px', display: 'grid', gridTemplateColumns: '180px 1fr 200px', gap: 10, minHeight: 0 }}>
-        <Leaderboard players={players} scores={scores} currentDrawerId={currentDrawerId} mySocketId={socketId} />
+        <Leaderboard players={players} scores={scores} currentDrawerId={currentDrawerId} mySocketId={socketId} friendIds={friendIds} myUserId={user.userId} />
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <DrawingCanvas isDrawer={isDrawer} onDraw={handleDraw} onClear={handleClear} onUndo={handleUndo} externalDraw={externalDraw} externalClear={externalClear} externalSync={externalSync} />
           {phase === 'reveal' && <RevealOverlay word={revealWord} />}

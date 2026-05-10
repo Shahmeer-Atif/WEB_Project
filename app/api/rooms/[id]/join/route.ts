@@ -12,12 +12,14 @@ export async function POST(
 
   const { id } = await params
   const body = await req.json().catch(() => ({}))
-  const password = (body.password || '').trim()
+  // Trim both sides to handle accidental whitespace
+  const inputPassword = String(body.password ?? '').trim()
 
   await connectDB()
 
   const room = await Room.findOne({ roomId: id })
 
+  // Room not in DB (quick-play socket-only room) — allow join
   if (!room) {
     return NextResponse.json({ roomId: id, roomName: id, isPrivate: false, maxPlayers: 8, rounds: 5 })
   }
@@ -26,8 +28,11 @@ export async function POST(
     return NextResponse.json({ message: 'This room has already ended' }, { status: 410 })
   }
 
-  const storedPassword = (room.password || '').trim()
-  if (storedPassword !== '' && storedPassword !== password) {
+  // Get stored password — handle undefined/null from old documents
+  const storedPassword = String(room.password ?? '').trim()
+
+  // Only enforce password if one was actually set
+  if (storedPassword.length > 0 && storedPassword !== inputPassword) {
     return NextResponse.json({ message: 'Wrong password — try again' }, { status: 403 })
   }
 
