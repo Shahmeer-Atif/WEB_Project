@@ -33,7 +33,7 @@ const ICONS = {
 const TopNav = ({ user, onLogout, onFriendsOpen, pendingCount }: {
   user: JWTPayload; onLogout: () => void; onFriendsOpen: () => void; pendingCount: number
 }) => (
-  <header className="lobby-header" style={{ width: '100%', padding: '0 32px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', flexShrink: 0, borderBottom: '1px solid rgba(27,24,48,0.06)', background: 'rgba(251,246,236,0.85)', backdropFilter: 'blur(12px)' }}>
+  <header style={{ width: '100%', padding: '0 32px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', flexShrink: 0, borderBottom: '1px solid rgba(27,24,48,0.06)', background: 'rgba(251,246,236,0.85)', backdropFilter: 'blur(12px)' }}>
     <a href="/lobby" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', flexShrink: 0, zIndex: 2 }}>
       <div style={{ width: 32, height: 32, borderRadius: 9, background: '#312E81', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(-6deg)', boxShadow: '0 4px 0 -1px #1F1B5C', position: 'relative' }}>
         <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#FBF6EC', fontSize: 17 }}>i</span>
@@ -44,23 +44,23 @@ const TopNav = ({ user, onLogout, onFriendsOpen, pendingCount }: {
         <div style={{ fontFamily: "'Caveat', cursive", color: '#5A5275', fontSize: 10 }}>draw • guess • repeat</div>
       </div>
     </a>
-    <nav className="lobby-nav" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(16px)', borderRadius: 999, padding: '4px 6px', border: '1px solid rgba(255,255,255,0.7)', boxShadow: '0 2px 12px rgba(31,27,92,0.08)' }}>
+    <nav style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(16px)', borderRadius: 999, padding: '4px 6px', border: '1px solid rgba(255,255,255,0.7)', boxShadow: '0 2px 12px rgba(31,27,92,0.08)' }}>
       {[{ label: 'Home', href: '/lobby', active: true }, ...(user.role === 'admin' ? [{ label: 'Admin', href: '/admin', active: false }] : [])].map(l => (
         <a key={l.label} href={l.href} style={{ padding: '5px 16px', fontSize: 13, fontWeight: 600, borderRadius: 999, textDecoration: 'none', background: l.active ? '#1B1830' : 'transparent', color: l.active ? '#FBF6EC' : '#2A2545' }}>{l.label}</a>
       ))}
     </nav>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, zIndex: 2 }}>
-      <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(252,211,77,0.35)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 999, padding: '5px 11px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(252,211,77,0.35)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 999, padding: '5px 11px' }}>
         <span style={{ fontSize: 13 }}>🪙</span>
         <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 13 }}>2,480</span>
       </div>
       <button onClick={onFriendsOpen} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#2A2545', cursor: 'pointer' }}>
-        👥 <span className="hide-on-mobile">Friends</span>
+        👥 Friends
         {pendingCount > 0 && <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#EC4899', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pendingCount}</span>}
       </button>
-      <div className="user-pill" style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 999, padding: '3px 10px 3px 3px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 999, padding: '3px 10px 3px 3px' }}>
         <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#312E81', color: '#FBF6EC', fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{user.username?.[0]?.toUpperCase() ?? '?'}</div>
-        <div className="user-pill-text hide-on-mobile" style={{ lineHeight: 1.2 }}>
+        <div style={{ lineHeight: 1.2 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#1B1830' }}>@{user.username}</div>
           <div style={{ fontSize: 9, color: '#5A5275' }}>{user.role === 'admin' ? '👑 Admin' : 'Sketcher'}</div>
         </div>
@@ -92,7 +92,7 @@ const QuickPlayCard = ({ onQuickPlay, searching, onJoin }: { onQuickPlay: () => 
   }
 
   return (
-    <div className="quick-play-card" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,255,255,0.58))', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.65)', boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset, 0 20px 40px -12px rgba(31,27,92,0.16)', borderRadius: 20, padding: '24px 28px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', gridRow: 'span 2' }}>
+    <div style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,255,255,0.58))', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.65)', boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset, 0 20px 40px -12px rgba(31,27,92,0.16)', borderRadius: 20, padding: '24px 28px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', gridRow: 'span 2' }}>
       <div style={{ position: 'absolute', top: -7, left: 36, width: 60, height: 18, background: 'rgba(252,211,77,0.85)', transform: 'rotate(-5deg)', borderRadius: 2, zIndex: 20 }} />
       <svg viewBox="0 0 200 200" style={{ position: 'absolute', right: -60, bottom: -60, width: 280, height: 280, opacity: 0.1, pointerEvents: 'none' }}>
         <path d="M100 10c25 5 60 0 70 30s-10 50 0 80-30 60-60 60-70-10-80-40 10-50-10-80 50-55 80-50z" fill="#312E81" />
@@ -316,8 +316,8 @@ export default function LobbyClient({ user }: Props) {
           <div style={{ fontFamily: "'Caveat', cursive", color: '#F59E0B', fontSize: 18, lineHeight: 1, marginBottom: 1 }}>welcome back, {user.username} —</div>
           <h1 style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 'clamp(1.5rem, 2.5vw, 2.2rem)', margin: 0, lineHeight: 1.1 }}>your sketchbook is open.</h1>
         </div>
-        <div className="main-grid" style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr auto', gap: 14 }}>
-          <div className="quick-play-wrapper" style={{ gridRow: 'span 2', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr auto', gap: 14 }}>
+          <div style={{ gridRow: 'span 2', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <QuickPlayCard onQuickPlay={handleQuickPlay} searching={searching} onJoin={async (id, pw) => {
               try { await handleJoin(id, pw) } catch (e: any) {
                 // Re-throw so QuickPlayCard can show the error
@@ -340,40 +340,12 @@ export default function LobbyClient({ user }: Props) {
         * { box-sizing: border-box; }
         input[type=range] { cursor: pointer; }
         @media (max-width: 720px) {
-          .hide-on-mobile { display: none !important; }
-          .main-grid { 
-            display: flex !important;
-            flex-direction: column !important;
-            overflow-y: auto !important; 
-          }
-          .quick-play-wrapper { 
-            grid-row: auto !important; 
-            min-height: max-content !important;
-          }
-          .quick-play-card {
-            height: auto !important;
-          }
-          
-          /* Header Wrapping for Mobile */
-          .lobby-header { 
-            height: auto !important; 
-            flex-wrap: wrap !important; 
-            padding: 10px 16px !important; 
-            justify-content: center !important; 
-            gap: 12px !important; 
-          }
-          .lobby-nav { 
-            position: static !important; 
-            transform: none !important; 
-            order: 3 !important; 
-            width: 100% !important; 
-            justify-content: center !important; 
-          }
-          .user-pill { padding: 3px !important; gap: 0 !important; }
-          
+          div[style*="gridTemplateColumns: 1fr 1fr"] { grid-template-columns: 1fr !important; grid-template-rows: auto !important; overflow-y: auto !important; }
+          div[style*="gridRow: span 2"] { grid-row: span 1 !important; }
           body { overflow: auto !important; }
           div[style*="height: 100vh"] { height: auto !important; overflow: auto !important; }
           main { padding: 12px 16px !important; }
+          header { padding: 0 16px !important; }
           footer { padding: 10px 16px !important; }
         }
       `}</style>
