@@ -8,7 +8,7 @@ export interface IRoom extends Document {
   rounds: number
   drawTime: number
   isPrivate: boolean
-  password?: string
+  password: string
   phase: 'waiting' | 'playing' | 'ended'
   playerCount: number
   createdAt: Date
@@ -22,7 +22,7 @@ const RoomSchema = new Schema<IRoom>({
   rounds:      { type: Number, default: 5 },
   drawTime:    { type: Number, default: 60 },
   isPrivate:   { type: Boolean, default: false },
-  password:    { type: String }, // Hashed password if private
+  password:    { type: String, default: '' },
   phase:       { type: String, enum: ['waiting', 'playing', 'ended'], default: 'waiting' },
   playerCount: { type: Number, default: 0 },
 }, { timestamps: true })
