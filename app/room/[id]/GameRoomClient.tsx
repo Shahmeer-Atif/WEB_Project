@@ -39,33 +39,37 @@ const TimerRing = ({ value, max = 60 }: { value: number; max?: number }) => {
 // ─── Word Display Bar ─────────────────────────────────────────────────────────
 const WordBar = ({ hint, wordLength, drawerName, isDrawer, word, phase }: { hint: string; wordLength: number; drawerName: string; isDrawer: boolean; word: string; phase: GamePhase }) => {
   if (phase === 'waiting') return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 16px', background: 'rgba(27,24,48,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 16px', background: 'rgba(27,24,48,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)' }}>
       <span style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 16 }}>waiting for players to join…</span>
     </div>
   )
   if (phase === 'reveal' || phase === 'end') return null
 
   return (
-    <div style={{ padding: '8px 16px', background: isDrawer ? 'rgba(245,158,11,0.08)' : 'rgba(49,46,129,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+    <div style={{ padding: '6px 16px', background: isDrawer ? 'rgba(245,158,11,0.08)' : 'rgba(49,46,129,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: isDrawer ? '#B45309' : '#5A5275', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
         {isDrawer ? '✏️ Your word to draw' : `🎯 ${drawerName} is drawing — guess it!`}
       </div>
-      <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {(isDrawer ? word : hint).split('').map((ch, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <div style={{ width: 22, height: 28, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 15, background: ch !== '_' ? (isDrawer ? 'rgba(245,158,11,0.25)' : 'rgba(49,46,129,0.1)') : 'transparent', border: ch !== '_' ? `1px solid ${isDrawer ? 'rgba(245,158,11,0.5)' : 'rgba(49,46,129,0.3)'}` : 'none', color: '#1B1830' }}>
-              {ch !== '_' ? ch.toUpperCase() : ''}
+      {isDrawer ? (
+        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 22, color: '#B45309', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          {word}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {hint.split('').map((ch, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <div style={{ width: 22, height: 28, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 15, background: ch !== '_' ? 'rgba(49,46,129,0.1)' : 'transparent', border: ch !== '_' ? '1px solid rgba(49,46,129,0.3)' : 'none', color: '#1B1830' }}>
+                {ch !== '_' ? ch.toUpperCase() : ''}
+              </div>
+              <div style={{ width: 18, height: 2, background: 'rgba(27,24,48,0.3)', borderRadius: 999 }} />
             </div>
-            <div style={{ width: 18, height: 2, background: 'rgba(27,24,48,0.3)', borderRadius: 999 }} />
-          </div>
-        ))}
-      </div>
-      <span style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 12 }}>{wordLength} letters</span>
+          ))}
+        </div>
+      )}
+      {!isDrawer && <span style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 12 }}>{wordLength} letters</span>}
     </div>
   )
-}
-
-// ─── Invite Modal ─────────────────────────────────────────────────────────────
+}// ─── Invite Modal ─────────────────────────────────────────────────────────────
 const InviteModal = ({ roomId, roomName, onClose }: { roomId: string; roomName: string; onClose: () => void }) => {
   const [friends, setFriends] = useState<Friend[]>([])
   const [loading, setLoading] = useState(true)
@@ -445,8 +449,8 @@ export default function GameRoomClient({ roomId, user }: Props) {
     <div style={{ height: '100svh', backgroundColor: '#FBF6EC', backgroundImage: `radial-gradient(rgba(27,24,48,0.03) 1px,transparent 1px)`, backgroundSize: '4px 4px', fontFamily: "'Inter',system-ui,sans-serif", display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* ── Compact header ── */}
-      <header style={{ flexShrink: 0, padding: '6px 10px' }}>
-        <div style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 12, padding: '7px 12px', boxShadow: '0 2px 10px rgba(31,27,92,0.07)' }}>
+      <header style={{ flexShrink: 0, padding: '4px 10px' }}>
+        <div style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 12, padding: '5px 12px', boxShadow: '0 2px 10px rgba(31,27,92,0.07)' }}>
 
           {/* Row 1: logo | round/room | timer | invite | leave */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
