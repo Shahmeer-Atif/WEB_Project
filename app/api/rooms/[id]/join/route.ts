@@ -12,30 +12,22 @@ export async function POST(
 
   const { id } = await params
   const body = await req.json().catch(() => ({}))
-  const { password = '' } = body
+  const password = (body.password || '').trim()
 
   await connectDB()
 
   const room = await Room.findOne({ roomId: id })
 
-  // Room not in DB — it may exist only in socket server memory (quick-play).
-  // Allow the join; socket server is source of truth for game state.
   if (!room) {
-    return NextResponse.json({
-      roomId: id,
-      roomName: id,
-      isPrivate: false,
-      maxPlayers: 8,
-      rounds: 5,
-    })
+    return NextResponse.json({ roomId: id, roomName: id, isPrivate: false, maxPlayers: 8, rounds: 5 })
   }
 
   if (room.phase === 'ended') {
     return NextResponse.json({ message: 'This room has already ended' }, { status: 410 })
   }
 
-  // Check password only if room has one set
-  if (room.password && room.password.trim() !== '' && room.password !== password) {
+  const storedPassword = (room.password || '').trim()
+  if (storedPassword !== '' && storedPassword !== password) {
     return NextResponse.json({ message: 'Wrong password — try again' }, { status: 403 })
   }
 
