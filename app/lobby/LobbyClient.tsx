@@ -44,27 +44,32 @@ const TopNav = ({ user, onLogout, onFriendsOpen, pendingCount }: {
         <div style={{ fontFamily: "'Caveat', cursive", color: '#5A5275', fontSize: 10 }}>draw • guess • repeat</div>
       </div>
     </a>
-    <nav style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(16px)', borderRadius: 999, padding: '4px 6px', border: '1px solid rgba(255,255,255,0.7)', boxShadow: '0 2px 12px rgba(31,27,92,0.08)' }}>
+    
+    <nav className="hide-on-mobile" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(16px)', borderRadius: 999, padding: '4px 6px', border: '1px solid rgba(255,255,255,0.7)', boxShadow: '0 2px 12px rgba(31,27,92,0.08)' }}>
       {[{ label: 'Home', href: '/lobby', active: true }, ...(user.role === 'admin' ? [{ label: 'Admin', href: '/admin', active: false }] : [])].map(l => (
         <a key={l.label} href={l.href} style={{ padding: '5px 16px', fontSize: 13, fontWeight: 600, borderRadius: 999, textDecoration: 'none', background: l.active ? '#1B1830' : 'transparent', color: l.active ? '#FBF6EC' : '#2A2545' }}>{l.label}</a>
       ))}
     </nav>
+    
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, zIndex: 2 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(252,211,77,0.35)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 999, padding: '5px 11px' }}>
+      <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(252,211,77,0.35)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 999, padding: '5px 11px' }}>
         <span style={{ fontSize: 13 }}>🪙</span>
         <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 13 }}>2,480</span>
       </div>
+      
       <button onClick={onFriendsOpen} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#2A2545', cursor: 'pointer' }}>
         👥 Friends
         {pendingCount > 0 && <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#EC4899', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pendingCount}</span>}
       </button>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 999, padding: '3px 10px 3px 3px' }}>
+      
+      <div className="user-pill" style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 999, padding: '3px 10px 3px 3px' }}>
         <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#312E81', color: '#FBF6EC', fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{user.username?.[0]?.toUpperCase() ?? '?'}</div>
-        <div style={{ lineHeight: 1.2 }}>
+        <div className="hide-on-mobile" style={{ lineHeight: 1.2 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#1B1830' }}>@{user.username}</div>
           <div style={{ fontSize: 9, color: '#5A5275' }}>{user.role === 'admin' ? '👑 Admin' : 'Sketcher'}</div>
         </div>
       </div>
+      
       <button onClick={onLogout} title="Log out" style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#5A5275' }}>
         <Icon path={ICONS.logout} size={14} />
       </button>
@@ -249,7 +254,6 @@ export default function LobbyClient({ user }: Props) {
   const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => {
-    // Fetch friend requests + game invites for badge count
     const fetchNotifications = async () => {
       try {
         const [friendsRes, invitesRes] = await Promise.all([
@@ -290,7 +294,6 @@ export default function LobbyClient({ user }: Props) {
       })
       if (!res.ok) {
         const data = await res.json()
-        // Bubble error back up — QuickPlayCard shows it inline
         throw new Error(data.message || 'Could not join room')
       }
       router.push(`/room/${roomId}`)
@@ -320,7 +323,6 @@ export default function LobbyClient({ user }: Props) {
           <div style={{ gridRow: 'span 2', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <QuickPlayCard onQuickPlay={handleQuickPlay} searching={searching} onJoin={async (id, pw) => {
               try { await handleJoin(id, pw) } catch (e: any) {
-                // Re-throw so QuickPlayCard can show the error
                 throw e
               }
             }} />
@@ -334,12 +336,16 @@ export default function LobbyClient({ user }: Props) {
         <div style={{ display: 'flex', gap: 14 }}>{['Privacy', 'Rules', 'Discord', ...(user.role === 'admin' ? ['Admin'] : []), 'v0.3.1'].map(l => <a key={l} href={l === 'Admin' ? '/admin' : '#'} style={{ color: '#5A5275', textDecoration: 'none' }}>{l}</a>)}</div>
       </footer>
       <FriendsPanel isOpen={friendsOpen} onClose={() => setFriendsOpen(false)} myUserId={user.userId} />
+      
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap');
         @keyframes pulseRing { 0% { transform: scale(.92); opacity: .5; } 70% { transform: scale(1.35); opacity: 0; } 100% { transform: scale(1.35); opacity: 0; } }
         * { box-sizing: border-box; }
         input[type=range] { cursor: pointer; }
+        
         @media (max-width: 720px) {
+          .hide-on-mobile { display: none !important; }
+          .user-pill { padding: 3px !important; gap: 0 !important; }
           div[style*="gridTemplateColumns: 1fr 1fr"] { grid-template-columns: 1fr !important; grid-template-rows: auto !important; overflow-y: auto !important; }
           div[style*="gridRow: span 2"] { grid-row: span 1 !important; }
           body { overflow: auto !important; }
