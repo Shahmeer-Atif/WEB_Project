@@ -193,20 +193,24 @@ function endGame(roomId) {
 io.on('connection', (socket) => {
   console.log(`[SOCKET] Connected: ${socket.id}`)
 
-  socket.on('room:join', ({ roomId, username, userId }) => {
+  socket.on('room:join', ({ roomId, username, userId, totalRounds, drawTime }) => {
     socket.join(roomId)
 
     if (!rooms.has(roomId)) {
       rooms.set(roomId, {
         players: [], currentDrawer: null, currentWord: '',
-        guessedPlayers: new Set(), round: 1, totalRounds: 5,
-        drawTime: 60, timeLeft: 60, phase: 'waiting',
+        guessedPlayers: new Set(), round: 1, 
+        totalRounds: totalRounds || 5,  // ← USE CLIENT VALUE, fallback to 5
+        drawTime: drawTime || 60,        // ← USE CLIENT VALUE, fallback to 60
+        timeLeft: drawTime || 60,
+        phase: 'waiting',
         scores: new Map(), timerInterval: null,
         turnsThisRound: 0, strokeHistory: [],
       })
     }
 
     const room = rooms.get(roomId)
+    // ... rest stays the same
     const existing = room.players.find(p => p.userId === userId)
 
     if (existing) {
