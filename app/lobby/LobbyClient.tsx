@@ -51,10 +51,6 @@ const TopNav = ({ user, onLogout, onFriendsOpen, pendingCount }: {
       ))}
     </nav>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, zIndex: 2 }}>
-      <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(252,211,77,0.35)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 999, padding: '5px 11px' }}>
-        <span style={{ fontSize: 13 }}>🪙</span>
-        <span style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 13 }}>2,480</span>
-      </div>
       <button onClick={onFriendsOpen} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 999, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#2A2545', cursor: 'pointer' }}>
         👥 <span className="hide-on-mobile">Friends</span>
         {pendingCount > 0 && <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#EC4899', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{pendingCount}</span>}

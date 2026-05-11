@@ -329,22 +329,42 @@ const RevealOverlay = ({ word }: { word: string }) => (
   </div>
 )
 
-const GameEndOverlay = ({ scores, players, onLeave }: { scores: Record<string, number>; players: Player[]; onLeave: () => void }) => {
+const GameEndOverlay = ({ scores, players, onLeave, winners }: { scores: Record<string, number>; players: Player[]; onLeave: () => void; winners?: { id: string; username: string; score: number }[] }) => {
   const sorted = [...players].sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0))
   const medals = ['🥇', '🥈', '🥉']
+
+  // Determine winner display
+  const winnerNames = winners && winners.length > 0 
+    ? winners.map(w => w.username).join(' & ')
+    : sorted.length > 0 ? sorted[0].username : ''
+  const isTie = winners && winners.length > 1
+
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(27,24,48,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: '#FBF6EC', borderRadius: 18, padding: '28px 28px', textAlign: 'center', width: '100%', maxWidth: 340, boxShadow: '0 20px 60px rgba(31,27,92,0.3)' }}>
-        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 28, marginBottom: 4 }}>Game Over!</div>
-        <div style={{ fontFamily: "'Caveat',cursive", color: '#F59E0B', fontSize: 18, marginBottom: 18 }}>final scores</div>
+      <div style={{ background: '#FBF6EC', borderRadius: 18, padding: '28px 28px', textAlign: 'center', width: '100%', maxWidth: 360, boxShadow: '0 20px 60px rgba(31,27,92,0.3)' }}>
+        {/* Winner crown */}
+        <div style={{ fontSize: 48, marginBottom: 4 }}>{isTie ? '🏆🏆' : '🏆'}</div>
+        <div style={{ fontFamily: "'Caveat',cursive", color: '#F59E0B', fontSize: 18, marginBottom: 2 }}>{isTie ? "It's a tie!" : 'winner'}</div>
+        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#312E81', fontSize: 26, marginBottom: 12 }}>
+          @{winnerNames}
+        </div>
+
+        <div style={{ width: '100%', height: 1, background: 'rgba(27,24,48,0.1)', marginBottom: 14 }} />
+
+        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 20, marginBottom: 4 }}>Game Over!</div>
+        <div style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 15, marginBottom: 14 }}>final scores</div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 20 }}>
-          {sorted.slice(0, 5).map((p, i) => (
-            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', borderRadius: 10, background: i === 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.7)' }}>
-              <span style={{ fontSize: 18 }}>{medals[i] || `${i + 1}.`}</span>
-              <span style={{ flex: 1, fontWeight: 600, color: '#1B1830', textAlign: 'left', fontSize: 13 }}>@{p.username}</span>
-              <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#312E81', fontSize: 16 }}>{scores[p.id] || 0}</span>
-            </div>
-          ))}
+          {sorted.slice(0, 5).map((p, i) => {
+            const isWinner = winners?.some(w => w.id === p.id) || (i === 0 && (!winners || winners.length === 0))
+            return (
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', borderRadius: 10, background: isWinner ? 'rgba(245,158,11,0.18)' : 'rgba(255,255,255,0.7)', border: isWinner ? '1px solid rgba(245,158,11,0.35)' : '1px solid transparent' }}>
+                <span style={{ fontSize: 18 }}>{medals[i] || `${i + 1}.`}</span>
+                <span style={{ flex: 1, fontWeight: 600, color: '#1B1830', textAlign: 'left', fontSize: 13 }}>@{p.username}</span>
+                <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: isWinner ? '#B45309' : '#312E81', fontSize: 16 }}>{scores[p.id] || 0}</span>
+              </div>
+            )
+          })}
         </div>
         <button onClick={onLeave} style={{ background: '#312E81', color: '#FBF6EC', border: 'none', fontFamily: "'Fredoka',sans-serif", fontWeight: 600, fontSize: 15, padding: '10px 24px', borderRadius: 11, cursor: 'pointer', boxShadow: '0 4px 0 -1px #1F1B5C' }}>Back to lobby</button>
       </div>
@@ -372,6 +392,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
   const [externalClear, setExternalClear] = useState(0)
   const [externalSync, setExternalSync] = useState<string | null>(null)
   const [showInvite, setShowInvite] = useState(false)
+  const [winners, setWinners] = useState<{ id: string; username: string; score: number }[]>([])
   const [roomName, setRoomName] = useState('')
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set())
   const isDrawer = socketId === currentDrawerId
@@ -423,7 +444,13 @@ socket.on('round:word', ({ word }) => {
 });
 
     socket.on('round:end', ({ word, scores }) => { setRevealWord(word); setScores(scores); setPhase('reveal'); setMyWord('') })
-    socket.on('game:end', ({ finalScores }) => { const m: Record<string, number> = {}; finalScores.forEach((s: any) => { m[s.id] = s.score }); setScores(m); setPhase('end') })
+    socket.on('game:end', ({ finalScores, winners }) => { 
+      const m: Record<string, number> = {}; 
+      finalScores.forEach((s: any) => { m[s.id] = s.score }); 
+      setScores(m); 
+      setWinners(winners || []);
+      setPhase('end'); 
+    })
     socket.on('timer:tick', ({ timeLeft }) => setTimeLeft(timeLeft))
     socket.on('scores:update', ({ scores }) => setScores(scores))
     socket.on('draw:stroke', (e: DrawEvent) => setExternalDraw({ ...e }))
@@ -503,7 +530,7 @@ socket.on('round:word', ({ word }) => {
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <DrawingCanvas isDrawer={isDrawer} onDraw={handleDraw} onClear={handleClear} onUndo={handleUndo} onSnapshot={handleSnapshot} externalDraw={externalDraw} externalClear={externalClear} externalSync={externalSync} />
           {phase === 'reveal' && <RevealOverlay word={revealWord} />}
-          {phase === 'end' && <GameEndOverlay scores={scores} players={players} onLeave={handleLeave} />}
+          {phase === 'end' && <GameEndOverlay scores={scores} players={players} onLeave={handleLeave} winners={winners} />}
         </div>
         <ChatPanel messages={messages} onSend={handleSendMessage} disabled={isDrawer} phase={phase} />
       </main>

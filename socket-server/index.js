@@ -37,6 +37,21 @@ function pickWord() {
     'jellyfish','parachute','crocodile','lighthouse','umbrella','snowflake',
     'fireworks','saxophone','spaceship','treasure','cactus','helicopter','mermaid',
     'compass','thunderstorm','dinosaur','pirate','castle','wizard','robot',
+    'banana', 'pizza', 'kangaroo', 'octopus', 'pyramid', 'satellite', 'microscope',
+    'carousel', 'sunflower', 'squirrel', 'pancake', 'harpoon', 'fountain', 'igloo',
+    'koala', 'lantern', 'mosquito', 'narwhal', 'ostrich', 'quokka', 'raccoon',
+    'scorpion', 'toucan', 'vampire', 'walrus', 'xylophone', 'yacht', 'zeppelin',
+    'airplane', 'balloon', 'caterpillar', 'dolphin', 'eagle', 'flamingo', 'gorilla',
+    'hedgehog', 'iguana', 'jaguar', 'koala', 'lemur', 'meerkat', 'newt',
+    'orangutan', 'peacock', 'quail', 'rhinoceros', 'seahorse', 'tiger', 'unicorn',
+    'vulture', 'wombat', 'yak', 'zebra', 'accordion', 'boomerang', 'chandelier',
+    'domino', 'espresso', 'fiddle', 'gondola', 'harmonica', 'icicle', 'jackal',
+    'kayak', 'labyrinth', 'machete', 'nunchaku', 'obsidian', 'pajamas', 'quiver',
+    'rattlesnake', 'sombrero', 'tambourine', 'ukulele', 'violin', 'waffle',
+    'yoyo', 'zucchini', 'anvil', 'bagpipe', 'cannon', 'dagger', 'envelope',
+    'feather', 'goblet', 'horseshoe', 'inkwell', 'javelin', 'kettle', 'locket',
+    'magnifying glass', 'necklace', 'ore', 'parchment', 'quill', 'rose', 'shield',
+    'torch', 'urn', 'vase', 'wheel', 'xylophone', 'yarn', 'zipper',
   ]
   return words[Math.floor(Math.random() * words.length)]
 }
@@ -78,6 +93,7 @@ function startTurn(roomId) {
     timeLeft: room.timeLeft,
     round: room.round,
     totalRounds: room.totalRounds,
+    wordForDrawer: room.currentWord,  // Send word to drawer via round:start too
   })
 
   broadcastRoomState(roomId)
@@ -130,6 +146,9 @@ function endTurn(roomId) {
       room.round += 1
     }
 
+    // === FIX: Proper round check ===
+    // Round X of totalRounds means we play rounds 1 through totalRounds
+    // After finishing round totalRounds, end the game
     if (room.round > room.totalRounds) {
       endGame(roomId)
     } else {
@@ -141,13 +160,34 @@ function endTurn(roomId) {
 function endGame(roomId) {
   const room = rooms.get(roomId)
   if (!room) return
+
   clearInterval(room.timerInterval)
   room.phase = 'end'
+
+  // Build final scores sorted by score descending
   const finalScores = room.players
-    .map(p => ({ id: p.id, username: p.username, score: room.scores.get(p.id) || 0 }))
+    .map(p => ({ 
+      id: p.id, 
+      userId: p.userId,
+      username: p.username, 
+      score: room.scores.get(p.id) || 0 
+    }))
     .sort((a, b) => b.score - a.score)
-  io.to(roomId).emit('game:end', { finalScores })
-  rooms.delete(roomId)
+
+  // Determine winner(s) — handle ties
+  const maxScore = finalScores.length > 0 ? finalScores[0].score : 0
+  const winners = finalScores.filter(s => s.score === maxScore && maxScore > 0)
+
+  io.to(roomId).emit('game:end', { 
+    finalScores,
+    winners: winners.map(w => ({ id: w.id, username: w.username, score: w.score })),
+    totalRounds: room.totalRounds,
+  })
+
+  // Keep room alive for a bit so players can see results, then clean up
+  setTimeout(() => {
+    rooms.delete(roomId)
+  }, 60000) // Delete after 60 seconds
 }
 
 io.on('connection', (socket) => {
@@ -219,6 +259,7 @@ io.on('connection', (socket) => {
     if (getActivePlayers(room).length >= 2 && room.phase === 'waiting') {
       room.currentDrawer = getActivePlayers(room)[0].id
       room.turnsThisRound = 0
+      room.round = 1
       setTimeout(() => startTurn(roomId), 2000)
     }
   })
