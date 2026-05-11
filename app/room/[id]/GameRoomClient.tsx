@@ -380,7 +380,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
   const [currentDrawerId, setCurrentDrawerId] = useState('')
   const [phase, setPhase] = useState<GamePhase>('waiting')
   const [round, setRound] = useState(1)
-  const [totalRounds, setTotalRounds] = useState(5)
+  const [totalRounds, setTotalRounds] = useState(0)
   const [timeLeft, setTimeLeft] = useState(60)
   const [hint, setHint] = useState('')
   const [wordLength, setWordLength] = useState(0)
