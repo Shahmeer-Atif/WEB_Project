@@ -397,15 +397,13 @@ export default function GameRoomClient({ roomId, user }: Props) {
       setTotalRounds(totalRounds); setPhase(phase); setTimeLeft(timeLeft)
     })
 
-    socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round, wordForDrawer, totalRounds }) => {
-      setCurrentDrawerId(drawerId); setWordLength(wordLength); setHint(hint)
-      setTimeLeft(timeLeft); setRound(round); setPhase('drawing')
-      // wordForDrawer is only sent when you ARE the drawer
-      // Always update myWord — empty string for guessers, actual word for drawer
-      setMyWord(wordForDrawer || '')
-      setRevealWord(''); setMessages([]); setExternalClear(v => v + 1)
-      if (totalRounds) setTotalRounds(totalRounds)
-    })
+   socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round, wordForDrawer, word, totalRounds }) => {
+  setCurrentDrawerId(drawerId); setWordLength(wordLength); setHint(hint)
+  setTimeLeft(timeLeft); setRound(round); setPhase('drawing')
+  setMyWord(wordForDrawer || word || '')  // ← added `word` fallback
+  setRevealWord(''); setMessages([]); setExternalClear(v => v + 1)
+  if (totalRounds) setTotalRounds(totalRounds)
+})
 
     // Backup: server also sends round:word separately for the drawer
     socket.on('round:word', ({ word }) => {
