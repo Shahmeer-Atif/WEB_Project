@@ -397,18 +397,30 @@ export default function GameRoomClient({ roomId, user }: Props) {
       setTotalRounds(totalRounds); setPhase(phase); setTimeLeft(timeLeft)
     })
 
-    socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round, wordForDrawer, word, totalRounds }) => {
-  setCurrentDrawerId(drawerId); setWordLength(wordLength); setHint(hint)
-  setTimeLeft(timeLeft); setRound(round); setPhase('drawing')
-  setMyWord(wordForDrawer || word || '')  // ← Added `word` fallback
-  setRevealWord(''); setMessages([]); setExternalClear(v => v + 1)
-  if (totalRounds) setTotalRounds(totalRounds)
-})
+    // Replace your current round:start handler with this:
+socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round, wordForDrawer, totalRounds }) => {
+  setCurrentDrawerId(drawerId);
+  setWordLength(wordLength);
+  setHint(hint);
+  setTimeLeft(timeLeft);
+  setRound(round);
+  setPhase('drawing');
+  // Only set myWord if server included it (drawer only)
+  if (wordForDrawer) {
+    setMyWord(wordForDrawer);
+  }
+  setRevealWord('');
+  setMessages([]);
+  setExternalClear(v => v + 1);
+  if (totalRounds) setTotalRounds(totalRounds);
+});
 
-    // Backup: server also sends round:word separately for the drawer
-    socket.on('round:word', ({ word }) => {
-      setMyWord(word)
-    })
+// Keep your round:word backup listener - this is the primary way drawer gets word:
+socket.on('round:word', ({ word }) => {
+  if (word) {
+    setMyWord(word);
+  }
+});
 
     socket.on('round:end', ({ word, scores }) => { setRevealWord(word); setScores(scores); setPhase('reveal'); setMyWord('') })
     socket.on('game:end', ({ finalScores }) => { const m: Record<string, number> = {}; finalScores.forEach((s: any) => { m[s.id] = s.score }); setScores(m); setPhase('end') })
