@@ -470,9 +470,37 @@ socket.on('round:word', ({ word }) => {
   }, [roomId, user])
 
   useEffect(() => {
+    // Fetch room settings FIRST
     fetch(`/api/rooms/${roomId}/join`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: '' }) })
-      .then(r => r.json()).then(d => { if (d.roomName && d.roomName !== roomId) setRoomName(d.roomName) }).catch(() => {})
-  }, [roomId])
+      .then(r => r.json()).then(d => { 
+        if (d.roomName && d.roomName !== roomId) setRoomName(d.roomName)
+        
+        const socket = getSocket()
+        socket.connect()
+
+        socket.on('connect', () => {
+          setSocketId(socket.id || '')
+          socket.emit('room:join', { 
+            roomId, 
+            username: user.username, 
+            userId: user.userId,
+            totalRounds: d.rounds || 5,
+            drawTime: d.drawTime || 60,
+          })
+          socket.emit('user:online', user.userId)
+        })
+        // ... rest of socket listeners
+      }).catch(() => {
+        // Fallback: connect without settings
+        const socket = getSocket()
+        socket.connect()
+        socket.on('connect', () => {
+          setSocketId(socket.id || '')
+          socket.emit('room:join', { roomId, username: user.username, userId: user.userId })
+          socket.emit('user:online', user.userId)
+        })
+      })
+  }, [roomId, user])
 
   const handleDraw = useCallback((e: DrawEvent) => { getSocket().emit('draw:stroke', { roomId, ...e }) }, [roomId])
   const handleClear = useCallback(() => { getSocket().emit('draw:clear', { roomId }) }, [roomId])
