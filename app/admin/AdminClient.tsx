@@ -274,14 +274,16 @@ const OverviewSection = ({ users }: { users: IUser[] }) => {
 }
 
 // ─── Users Section ────────────────────────────────────────────────────────────
-const UsersSection = ({ users, onUpdate, currentUserId }: {
+const UsersSection = ({ users, onUpdate, onDelete, currentUserId }: {
   users: IUser[]
   onUpdate: (userId: string, updates: { role?: 'admin' | 'user'; isActive?: boolean }) => Promise<void>
+  onDelete: (userId: string) => Promise<void>
   currentUserId: string
 }) => {
   const [filter, setFilter] = useState<FilterType>('All')
   const [search, setSearch] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   const filtered = users.filter(u => {
     const matchesFilter = filter === 'All' || (filter === 'Active' ? u.isActive : !u.isActive)
@@ -295,6 +297,20 @@ const UsersSection = ({ users, onUpdate, currentUserId }: {
     setUpdating(userId)
     await onUpdate(userId, updates)
     setUpdating(null)
+  }
+
+  const handleDelete = async (userId: string) => {
+    const user = users.find(u => u._id === userId)
+    if (!user) return
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to delete @${user.username}?\n\nThis action cannot be undone.`
+    )
+    if (!confirmed) return
+
+    setDeleting(userId)
+    await onDelete(userId)
+    setDeleting(null)
   }
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -350,7 +366,7 @@ const UsersSection = ({ users, onUpdate, currentUserId }: {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(27,24,48,0.08)' }}>
-                {['User', 'Role', 'Status', 'Games', 'Joined', 'Last seen', ''].map(h => (
+                {['User', 'Role', 'Status', 'Games', 'Joined', 'Last seen', 'Actions'].map(h => (
                   <th key={h} style={{
                     padding: '8px 12px', textAlign: 'left',
                     fontSize: 11, fontWeight: 700, color: '#5A5275',
@@ -363,11 +379,12 @@ const UsersSection = ({ users, onUpdate, currentUserId }: {
               {filtered.map(u => {
                 const isMe = u._id === currentUserId
                 const isLoading = updating === u._id
+                const isDeleting = deleting === u._id
                 return (
                   <tr key={u._id} style={{
                     borderBottom: '1px solid rgba(27,24,48,0.05)',
                     background: isMe ? 'rgba(245,158,11,0.05)' : 'transparent',
-                    opacity: isLoading ? 0.6 : 1,
+                    opacity: isLoading || isDeleting ? 0.6 : 1,
                     transition: 'opacity 0.2s',
                   }}>
                     {/* User */}
@@ -391,7 +408,7 @@ const UsersSection = ({ users, onUpdate, currentUserId }: {
                     <td style={{ padding: '12px' }}>
                       <select
                         value={u.role}
-                        disabled={isMe || isLoading}
+                        disabled={isMe || isLoading || isDeleting}
                         onChange={e => handleUpdate(u._id, { role: e.target.value as 'admin' | 'user' })}
                         style={{
                           background: 'transparent', border: 'none', cursor: isMe ? 'not-allowed' : 'pointer',
@@ -410,7 +427,7 @@ const UsersSection = ({ users, onUpdate, currentUserId }: {
                         <Toggle
                           on={u.isActive}
                           onChange={() => handleUpdate(u._id, { isActive: !u.isActive })}
-                          disabled={isMe || isLoading}
+                          disabled={isMe || isLoading || isDeleting}
                         />
                         <span style={{ fontSize: 12, fontWeight: 600, color: u.isActive ? '#10B981' : '#5A5275' }}>
                           {u.isActive ? 'active' : 'suspended'}
@@ -435,17 +452,45 @@ const UsersSection = ({ users, onUpdate, currentUserId }: {
                       {formatDate(u.lastSeen)}
                     </td>
 
-                    {/* Loading indicator */}
+                    {/* Actions */}
                     <td style={{ padding: '12px' }}>
-                      {isLoading && (
-                        <span style={{
-                          width: 14, height: 14, borderRadius: '50%',
-                          border: '2px solid rgba(49,46,129,0.2)',
-                          borderTopColor: '#312E81',
-                          animation: 'spin 0.7s linear infinite',
-                          display: 'inline-block',
-                        }} />
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {isLoading && (
+                          <span style={{
+                            width: 14, height: 14, borderRadius: '50%',
+                            border: '2px solid rgba(49,46,129,0.2)',
+                            borderTopColor: '#312E81',
+                            animation: 'spin 0.7s linear infinite',
+                            display: 'inline-block',
+                          }} />
+                        )}
+                        {!isMe && (
+                          <button
+                            onClick={() => handleDelete(u._id)}
+                            disabled={isLoading || isDeleting}
+                            title="Delete user"
+                            style={{
+                              width: 28, height: 28, borderRadius: 8, border: 'none',
+                              cursor: isDeleting ? 'not-allowed' : 'pointer',
+                              background: 'rgba(236,72,153,0.1)', color: '#EC4899',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.15s', opacity: isDeleting ? 0.5 : 1,
+                            }}
+                          >
+                            {isDeleting ? (
+                              <span style={{
+                                width: 12, height: 12, borderRadius: '50%',
+                                border: '2px solid rgba(236,72,153,0.2)',
+                                borderTopColor: '#EC4899',
+                                animation: 'spin 0.7s linear infinite',
+                                display: 'inline-block',
+                              }} />
+                            ) : (
+                              <Icon d={ICONS.trash} size={14} />
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
@@ -638,6 +683,23 @@ export default function AdminClient({ user }: Props) {
     }
   }
 
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/admin/users?userId=${userId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.message || 'Delete failed')
+        return
+      }
+      // Remove from local state — no need to refetch
+      setUsers(prev => prev.filter(u => u._id !== userId))
+    } catch {
+      alert('Network error. Please try again.')
+    }
+  }
+
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/')
@@ -667,7 +729,12 @@ export default function AdminClient({ user }: Props) {
 
     switch (active) {
       case 'overview': return <OverviewSection users={users} />
-      case 'users':    return <UsersSection users={users} onUpdate={handleUpdateUser} currentUserId={user.userId} />
+      case 'users':    return <UsersSection 
+        users={users} 
+        onUpdate={handleUpdateUser} 
+        onDelete={handleDeleteUser}
+        currentUserId={user.userId} 
+      />
       case 'words':    return <WordBankSection />
       case 'rooms':    return <RoomsSection />
     }
@@ -694,7 +761,7 @@ export default function AdminClient({ user }: Props) {
         * { box-sizing: border-box; }
         select option { background: #fff; color: #1B1830; }
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: rgba(27,24,48,0.15); border-radius: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(27,24,48,0.15); borderRadius: 6px; }
         @media (max-width: 768px) {
           div[style*="grid-template-columns: 240px"] { grid-template-columns: 1fr !important; }
         }

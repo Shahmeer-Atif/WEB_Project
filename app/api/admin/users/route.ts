@@ -89,3 +89,40 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ message: 'Server error' }, { status: 500 })
   }
 }
+
+// ── DELETE /api/admin/users — delete a user ─────────────────────────────────
+export async function DELETE(req: NextRequest) {
+  const auth = await getAuthFromRequest(req)
+
+  if (!auth || auth.role !== 'admin') {
+    return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
+  }
+
+  try {
+    const { searchParams } = new URL(req.url)
+    const userId = searchParams.get('userId')
+
+    if (!userId) {
+      return NextResponse.json({ message: 'userId is required' }, { status: 400 })
+    }
+
+    // Prevent admin from deleting their own account
+    if (userId === auth.userId) {
+      return NextResponse.json(
+        { message: 'You cannot delete your own account' },
+        { status: 400 }
+      )
+    }
+
+    const user = await User.findByIdAndDelete(userId).select('-passwordHash')
+
+    if (!user) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ message: 'User deleted', user })
+  } catch (error) {
+    console.error('[ADMIN DELETE USER ERROR]', error)
+    return NextResponse.json({ message: 'Server error' }, { status: 500 })
+  }
+}
