@@ -397,10 +397,10 @@ export default function GameRoomClient({ roomId, user }: Props) {
       setTotalRounds(totalRounds); setPhase(phase); setTimeLeft(timeLeft)
     })
 
-   socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round, wordForDrawer, word, totalRounds }) => {
+    socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round, wordForDrawer, word, totalRounds }) => {
   setCurrentDrawerId(drawerId); setWordLength(wordLength); setHint(hint)
   setTimeLeft(timeLeft); setRound(round); setPhase('drawing')
-  setMyWord(wordForDrawer || word || '')  // ← added `word` fallback
+  setMyWord(wordForDrawer || word || '')  // ← Added `word` fallback
   setRevealWord(''); setMessages([]); setExternalClear(v => v + 1)
   if (totalRounds) setTotalRounds(totalRounds)
 })
