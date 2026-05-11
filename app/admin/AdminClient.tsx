@@ -390,15 +390,15 @@ const UsersSection = ({ users, onUpdate, onDelete, currentUserId }: {
                     {/* User */}
                     <td style={{ padding: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{
+                                                <div style={{
                           width: 34, height: 34, borderRadius: 8, background: '#312E81',
                           color: '#FBF6EC', fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 14,
                           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        }}>{u.username[0].toUpperCase()}</div>
+                        }}>{u.username?.[0]?.toUpperCase() ?? '?'}</div>
                         <div>
                           <div style={{ fontWeight: 600, color: '#1B1830', fontSize: 13 }}>
-                            @{u.username}{isMe ? ' (you)' : ''}
-                          </div>
+  @{u.username ?? 'unknown'}{isMe ? ' (you)' : ''}
+</div>
                           <div style={{ fontSize: 11, color: '#5A5275' }}>{u.email}</div>
                         </div>
                       </div>
