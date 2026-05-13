@@ -22,7 +22,7 @@ interface IUser {
 }
 
 type FilterType = 'All' | 'Active' | 'Suspended'
-type ActiveSection = 'overview' | 'users' | 'words' | 'rooms'
+type ActiveSection = 'overview' | 'users' | 'words' | 'wordofday' | 'rooms'
 
 // ─── Icon helper ──────────────────────────────────────────────────────────────
 const Icon = ({ d, size = 16 }: { d: string; size?: number }) => (
@@ -122,6 +122,7 @@ const Sidebar = ({ active, setActive, user, onLogout }: {
     { id: 'overview', label: 'Overview',       icon: ICONS.chart  },
     { id: 'users',    label: 'User Management',icon: ICONS.users  },
     { id: 'words',    label: 'Word Bank',       icon: ICONS.words  },
+    { id: 'wordofday', label: 'Word of the Day', icon: ICONS.ink   },
     { id: 'rooms',    label: 'Active Rooms',    icon: ICONS.rooms  },
   ]
 
@@ -250,7 +251,7 @@ const OverviewSection = ({ users }: { users: IUser[] }) => {
                 width: 36, height: 36, borderRadius: '50%', background: '#312E81',
                 color: '#FBF6EC', fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 15,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>{u.username?.[0]?.toUpperCase() ?? '?'}</div>
+              }}>{u.username[0].toUpperCase()}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, color: '#1B1830', fontSize: 14 }}>@{u.username}</div>
                 <div style={{ fontSize: 12, color: '#5A5275' }}>{u.email}</div>
@@ -274,16 +275,14 @@ const OverviewSection = ({ users }: { users: IUser[] }) => {
 }
 
 // ─── Users Section ────────────────────────────────────────────────────────────
-const UsersSection = ({ users, onUpdate, onDelete, currentUserId }: {
+const UsersSection = ({ users, onUpdate, currentUserId }: {
   users: IUser[]
   onUpdate: (userId: string, updates: { role?: 'admin' | 'user'; isActive?: boolean }) => Promise<void>
-  onDelete: (userId: string) => Promise<void>
   currentUserId: string
 }) => {
   const [filter, setFilter] = useState<FilterType>('All')
   const [search, setSearch] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState<string | null>(null)
 
   const filtered = users.filter(u => {
     const matchesFilter = filter === 'All' || (filter === 'Active' ? u.isActive : !u.isActive)
@@ -297,20 +296,6 @@ const UsersSection = ({ users, onUpdate, onDelete, currentUserId }: {
     setUpdating(userId)
     await onUpdate(userId, updates)
     setUpdating(null)
-  }
-
-  const handleDelete = async (userId: string) => {
-    const user = users.find(u => u._id === userId)
-    if (!user) return
-    
-    const confirmed = window.confirm(
-      `Are you sure you want to delete @${user.username}?\n\nThis action cannot be undone.`
-    )
-    if (!confirmed) return
-
-    setDeleting(userId)
-    await onDelete(userId)
-    setDeleting(null)
   }
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -366,7 +351,7 @@ const UsersSection = ({ users, onUpdate, onDelete, currentUserId }: {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(27,24,48,0.08)' }}>
-                {['User', 'Role', 'Status', 'Games', 'Joined', 'Last seen', 'Actions'].map(h => (
+                {['User', 'Role', 'Status', 'Games', 'Joined', 'Last seen', ''].map(h => (
                   <th key={h} style={{
                     padding: '8px 12px', textAlign: 'left',
                     fontSize: 11, fontWeight: 700, color: '#5A5275',
@@ -379,26 +364,25 @@ const UsersSection = ({ users, onUpdate, onDelete, currentUserId }: {
               {filtered.map(u => {
                 const isMe = u._id === currentUserId
                 const isLoading = updating === u._id
-                const isDeleting = deleting === u._id
                 return (
                   <tr key={u._id} style={{
                     borderBottom: '1px solid rgba(27,24,48,0.05)',
                     background: isMe ? 'rgba(245,158,11,0.05)' : 'transparent',
-                    opacity: isLoading || isDeleting ? 0.6 : 1,
+                    opacity: isLoading ? 0.6 : 1,
                     transition: 'opacity 0.2s',
                   }}>
                     {/* User */}
                     <td style={{ padding: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                <div style={{
+                        <div style={{
                           width: 34, height: 34, borderRadius: 8, background: '#312E81',
                           color: '#FBF6EC', fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 14,
                           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        }}>{u.username?.[0]?.toUpperCase() ?? '?'}</div>
+                        }}>{u.username[0].toUpperCase()}</div>
                         <div>
                           <div style={{ fontWeight: 600, color: '#1B1830', fontSize: 13 }}>
-  @{u.username ?? 'unknown'}{isMe ? ' (you)' : ''}
-</div>
+                            @{u.username}{isMe ? ' (you)' : ''}
+                          </div>
                           <div style={{ fontSize: 11, color: '#5A5275' }}>{u.email}</div>
                         </div>
                       </div>
@@ -408,7 +392,7 @@ const UsersSection = ({ users, onUpdate, onDelete, currentUserId }: {
                     <td style={{ padding: '12px' }}>
                       <select
                         value={u.role}
-                        disabled={isMe || isLoading || isDeleting}
+                        disabled={isMe || isLoading}
                         onChange={e => handleUpdate(u._id, { role: e.target.value as 'admin' | 'user' })}
                         style={{
                           background: 'transparent', border: 'none', cursor: isMe ? 'not-allowed' : 'pointer',
@@ -427,7 +411,7 @@ const UsersSection = ({ users, onUpdate, onDelete, currentUserId }: {
                         <Toggle
                           on={u.isActive}
                           onChange={() => handleUpdate(u._id, { isActive: !u.isActive })}
-                          disabled={isMe || isLoading || isDeleting}
+                          disabled={isMe || isLoading}
                         />
                         <span style={{ fontSize: 12, fontWeight: 600, color: u.isActive ? '#10B981' : '#5A5275' }}>
                           {u.isActive ? 'active' : 'suspended'}
@@ -452,45 +436,17 @@ const UsersSection = ({ users, onUpdate, onDelete, currentUserId }: {
                       {formatDate(u.lastSeen)}
                     </td>
 
-                    {/* Actions */}
+                    {/* Loading indicator */}
                     <td style={{ padding: '12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {isLoading && (
-                          <span style={{
-                            width: 14, height: 14, borderRadius: '50%',
-                            border: '2px solid rgba(49,46,129,0.2)',
-                            borderTopColor: '#312E81',
-                            animation: 'spin 0.7s linear infinite',
-                            display: 'inline-block',
-                          }} />
-                        )}
-                        {!isMe && (
-                          <button
-                            onClick={() => handleDelete(u._id)}
-                            disabled={isLoading || isDeleting}
-                            title="Delete user"
-                            style={{
-                              width: 28, height: 28, borderRadius: 8, border: 'none',
-                              cursor: isDeleting ? 'not-allowed' : 'pointer',
-                              background: 'rgba(236,72,153,0.1)', color: '#EC4899',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'all 0.15s', opacity: isDeleting ? 0.5 : 1,
-                            }}
-                          >
-                            {isDeleting ? (
-                              <span style={{
-                                width: 12, height: 12, borderRadius: '50%',
-                                border: '2px solid rgba(236,72,153,0.2)',
-                                borderTopColor: '#EC4899',
-                                animation: 'spin 0.7s linear infinite',
-                                display: 'inline-block',
-                              }} />
-                            ) : (
-                              <Icon d={ICONS.trash} size={14} />
-                            )}
-                          </button>
-                        )}
-                      </div>
+                      {isLoading && (
+                        <span style={{
+                          width: 14, height: 14, borderRadius: '50%',
+                          border: '2px solid rgba(49,46,129,0.2)',
+                          borderTopColor: '#312E81',
+                          animation: 'spin 0.7s linear infinite',
+                          display: 'inline-block',
+                        }} />
+                      )}
                     </td>
                   </tr>
                 )
@@ -619,6 +575,127 @@ const WordBankSection = () => {
   )
 }
 
+// ─── Word of the Day Section ──────────────────────────────────────────────────
+const WordOfDaySection = () => {
+  const [word, setWord] = useState('')
+  const [hint, setHint] = useState('')
+  const [bonus, setBonus] = useState(500)
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [saving, setSaving] = useState(false)
+  const [history, setHistory] = useState<{ word: string; hint: string; bonusPoints: number; date: string }[]>([])
+  const [toast, setToast] = useState('')
+
+  useEffect(() => {
+    fetch('/api/admin/wordofday').then(r => r.json()).then(d => setHistory(d.words || [])).catch(() => {})
+  }, [])
+
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!word.trim()) return
+    setSaving(true)
+    const res = await fetch('/api/admin/wordofday', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word: word.trim(), hint: hint.trim(), bonusPoints: bonus, date }),
+    })
+    const data = await res.json()
+    setSaving(false)
+    if (res.ok) {
+      showToast('Word of the day saved!')
+      setHistory(prev => {
+        const filtered = prev.filter(w => w.date !== date)
+        return [{ word: word.trim(), hint: hint.trim(), bonusPoints: bonus, date }, ...filtered].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7)
+      })
+    } else {
+      showToast(data.message || 'Save failed')
+    }
+  }
+
+  const handleDelete = async (d: string) => {
+    await fetch('/api/admin/wordofday', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: d }) })
+    setHistory(prev => prev.filter(w => w.date !== d))
+    showToast('Deleted')
+  }
+
+  return (
+    <div>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontFamily: "'Caveat', cursive", color: '#F59E0B', fontSize: 20, lineHeight: 1, marginBottom: 4 }}>daily challenge —</div>
+        <h1 style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 32, margin: 0 }}>Word of the Day</h1>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        {/* Set form */}
+        <div style={{ background: 'linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.6))', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 20, padding: 24, boxShadow: '0 2px 12px rgba(31,27,92,0.08)' }}>
+          <h2 style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 20, marginTop: 0, marginBottom: 18 }}>Set Word</h2>
+          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#5A5275', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>Date</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 10, fontSize: 13, color: '#1B1830', outline: 'none', fontFamily: "'Inter',sans-serif", boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#5A5275', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>Word</label>
+              <input value={word} onChange={e => setWord(e.target.value)} placeholder="e.g. paradox" style={{ width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 10, fontSize: 13, color: '#1B1830', outline: 'none', fontFamily: "'Inter',sans-serif", boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#5A5275', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>Hint shown in lobby</label>
+              <input value={hint} onChange={e => setHint(e.target.value)} placeholder="e.g. A statement that contradicts itself" style={{ width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 10, fontSize: 13, color: '#1B1830', outline: 'none', fontFamily: "'Inter',sans-serif", boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#5A5275', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>
+                Bonus Points <span style={{ fontFamily: "'Fredoka',sans-serif", fontSize: 15, color: '#1B1830' }}>{bonus}</span>
+              </label>
+              <input type="range" min={100} max={2000} step={100} value={bonus} onChange={e => setBonus(Number(e.target.value))} style={{ width: '100%', accentColor: '#F59E0B' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#5A5275' }}><span>100</span><span>2000</span></div>
+            </div>
+            <button type="submit" disabled={saving || !word.trim()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: saving || !word.trim() ? '#5A5275' : '#312E81', color: '#FBF6EC', border: 'none', borderRadius: 12, padding: '11px 0', fontFamily: "'Fredoka',sans-serif", fontWeight: 600, fontSize: 15, cursor: saving || !word.trim() ? 'not-allowed' : 'pointer', boxShadow: saving || !word.trim() ? 'none' : '0 4px 0 -1px #1F1B5C', marginTop: 4 }}>
+              {saving ? 'Saving…' : '✓ Save Word of the Day'}
+            </button>
+          </form>
+          {toast && (
+            <div style={{ marginTop: 12, padding: '8px 14px', background: '#1B1830', color: '#FBF6EC', borderRadius: 10, fontSize: 13, textAlign: 'center', fontWeight: 500 }}>{toast}</div>
+          )}
+        </div>
+
+        {/* History */}
+        <div style={{ background: 'linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.6))', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 20, padding: 24, boxShadow: '0 2px 12px rgba(31,27,92,0.08)' }}>
+          <h2 style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 20, marginTop: 0, marginBottom: 18 }}>Recent Words</h2>
+          {history.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 18 }}>No words set yet</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {history.map(w => {
+                const isToday = w.date === new Date().toISOString().slice(0, 10)
+                return (
+                  <div key={w.date} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: isToday ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.6)', border: `1px solid ${isToday ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.8)'}` }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 16, textTransform: 'uppercase' }}>{w.word}</span>
+                        {isToday && <span style={{ fontSize: 10, fontWeight: 700, background: '#F59E0B', color: '#1B1830', padding: '1px 7px', borderRadius: 999 }}>TODAY</span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#5A5275' }}>{w.date} · +{w.bonusPoints} pts · {w.hint || 'no hint'}</div>
+                    </div>
+                    <button onClick={() => handleDelete(w.date)} style={{ width: 26, height: 26, borderRadius: 8, border: 'none', background: 'rgba(236,72,153,0.1)', color: '#EC4899', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon d={ICONS.trash} size={12} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <div style={{ marginTop: 16, padding: 14, background: 'rgba(49,46,129,0.06)', borderRadius: 12, fontSize: 12, color: '#5A5275', lineHeight: 1.6 }}>
+            <strong style={{ color: '#312E81' }}>How it works:</strong> When any player guesses today's word in any game room, they automatically receive the bonus points on top of their round score. The socket server checks the word every hour.
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
 // ─── Active Rooms Section ─────────────────────────────────────────────────────
 const RoomsSection = () => (
   <div>
@@ -683,23 +760,6 @@ export default function AdminClient({ user }: Props) {
     }
   }
 
-  const handleDeleteUser = async (userId: string) => {
-    try {
-      const res = await fetch(`/api/admin/users?userId=${userId}`, {
-        method: 'DELETE',
-      })
-      if (!res.ok) {
-        const data = await res.json()
-        alert(data.message || 'Delete failed')
-        return
-      }
-      // Remove from local state — no need to refetch
-      setUsers(prev => prev.filter(u => u._id !== userId))
-    } catch {
-      alert('Network error. Please try again.')
-    }
-  }
-
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/')
@@ -729,13 +789,9 @@ export default function AdminClient({ user }: Props) {
 
     switch (active) {
       case 'overview': return <OverviewSection users={users} />
-      case 'users':    return <UsersSection 
-        users={users} 
-        onUpdate={handleUpdateUser} 
-        onDelete={handleDeleteUser}
-        currentUserId={user.userId} 
-      />
+      case 'users':    return <UsersSection users={users} onUpdate={handleUpdateUser} currentUserId={user.userId} />
       case 'words':    return <WordBankSection />
+      case 'wordofday': return <WordOfDaySection />
       case 'rooms':    return <RoomsSection />
     }
   }
@@ -761,7 +817,7 @@ export default function AdminClient({ user }: Props) {
         * { box-sizing: border-box; }
         select option { background: #fff; color: #1B1830; }
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: rgba(27,24,48,0.15); borderRadius: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(27,24,48,0.15); border-radius: 6px; }
         @media (max-width: 768px) {
           div[style*="grid-template-columns: 240px"] { grid-template-columns: 1fr !important; }
         }

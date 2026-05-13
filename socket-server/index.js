@@ -13,6 +13,30 @@ const io = new Server(httpServer, {
 
 const rooms = new Map()
 
+// ── Word of the Day cache ─────────────────────────────────────────────────────
+let wordOfDay = { word: '', bonusPoints: 500 }
+let wodLastFetched = 0
+
+async function fetchWordOfDay() {
+  const now = Date.now()
+  if (now - wodLastFetched < 60 * 60 * 1000 && wordOfDay.word) return // cache 1hr
+  try {
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+    const res = await fetch(`${baseUrl}/api/wordofday`)
+    if (res.ok) {
+      const data = await res.json()
+      wordOfDay = { word: data.word.toLowerCase(), bonusPoints: data.bonusPoints || 500 }
+      wodLastFetched = now
+      console.log(`[WOD] Word of the day: ${wordOfDay.word}`)
+    }
+  } catch (e) {
+    console.log('[WOD] Could not fetch word of day:', e.message)
+  }
+}
+
+// Fetch on startup
+fetchWordOfDay()
+
 function getActivePlayers(room) {
   return room.players.filter(p => p.connected)
 }
@@ -37,21 +61,6 @@ function pickWord() {
     'jellyfish','parachute','crocodile','lighthouse','umbrella','snowflake',
     'fireworks','saxophone','spaceship','treasure','cactus','helicopter','mermaid',
     'compass','thunderstorm','dinosaur','pirate','castle','wizard','robot',
-    'banana', 'pizza', 'kangaroo', 'octopus', 'pyramid', 'satellite', 'microscope',
-    'carousel', 'sunflower', 'squirrel', 'pancake', 'harpoon', 'fountain', 'igloo',
-    'koala', 'lantern', 'mosquito', 'narwhal', 'ostrich', 'quokka', 'raccoon',
-    'scorpion', 'toucan', 'vampire', 'walrus', 'xylophone', 'yacht', 'zeppelin',
-    'airplane', 'balloon', 'caterpillar', 'dolphin', 'eagle', 'flamingo', 'gorilla',
-    'hedgehog', 'iguana', 'jaguar', 'koala', 'lemur', 'meerkat', 'newt',
-    'orangutan', 'peacock', 'quail', 'rhinoceros', 'seahorse', 'tiger', 'unicorn',
-    'vulture', 'wombat', 'yak', 'zebra', 'accordion', 'boomerang', 'chandelier',
-    'domino', 'espresso', 'fiddle', 'gondola', 'harmonica', 'icicle', 'jackal',
-    'kayak', 'labyrinth', 'machete', 'nunchaku', 'obsidian', 'pajamas', 'quiver',
-    'rattlesnake', 'sombrero', 'tambourine', 'ukulele', 'violin', 'waffle',
-    'yoyo', 'zucchini', 'anvil', 'bagpipe', 'cannon', 'dagger', 'envelope',
-    'feather', 'goblet', 'horseshoe', 'inkwell', 'javelin', 'kettle', 'locket',
-    'magnifying glass', 'necklace', 'ore', 'parchment', 'quill', 'rose', 'shield',
-    'torch', 'urn', 'vase', 'wheel', 'xylophone', 'yarn', 'zipper',
   ]
   return words[Math.floor(Math.random() * words.length)]
 }
@@ -93,7 +102,6 @@ function startTurn(roomId) {
     timeLeft: room.timeLeft,
     round: room.round,
     totalRounds: room.totalRounds,
-    wordForDrawer: room.currentWord,  // Send word to drawer via round:start too
   })
 
   broadcastRoomState(roomId)
@@ -146,9 +154,6 @@ function endTurn(roomId) {
       room.round += 1
     }
 
-    // === FIX: Proper round check ===
-    // Round X of totalRounds means we play rounds 1 through totalRounds
-    // After finishing round totalRounds, end the game
     if (room.round > room.totalRounds) {
       endGame(roomId)
     } else {
@@ -160,57 +165,32 @@ function endTurn(roomId) {
 function endGame(roomId) {
   const room = rooms.get(roomId)
   if (!room) return
-
   clearInterval(room.timerInterval)
   room.phase = 'end'
-
-  // Build final scores sorted by score descending
   const finalScores = room.players
-    .map(p => ({ 
-      id: p.id, 
-      userId: p.userId,
-      username: p.username, 
-      score: room.scores.get(p.id) || 0 
-    }))
+    .map(p => ({ id: p.id, username: p.username, score: room.scores.get(p.id) || 0 }))
     .sort((a, b) => b.score - a.score)
-
-  // Determine winner(s) — handle ties
-  const maxScore = finalScores.length > 0 ? finalScores[0].score : 0
-  const winners = finalScores.filter(s => s.score === maxScore && maxScore > 0)
-
-  io.to(roomId).emit('game:end', { 
-    finalScores,
-    winners: winners.map(w => ({ id: w.id, username: w.username, score: w.score })),
-    totalRounds: room.totalRounds,
-  })
-
-  // Keep room alive for a bit so players can see results, then clean up
-  setTimeout(() => {
-    rooms.delete(roomId)
-  }, 60000) // Delete after 60 seconds
+  io.to(roomId).emit('game:end', { finalScores })
+  rooms.delete(roomId)
 }
 
 io.on('connection', (socket) => {
   console.log(`[SOCKET] Connected: ${socket.id}`)
 
-  socket.on('room:join', ({ roomId, username, userId, totalRounds, drawTime }) => {
+  socket.on('room:join', ({ roomId, username, userId }) => {
     socket.join(roomId)
 
     if (!rooms.has(roomId)) {
       rooms.set(roomId, {
         players: [], currentDrawer: null, currentWord: '',
-        guessedPlayers: new Set(), round: 1, 
-        totalRounds: totalRounds || 5,  // ← USE CLIENT VALUE, fallback to 5
-        drawTime: drawTime || 60,        // ← USE CLIENT VALUE, fallback to 60
-        timeLeft: drawTime || 60,
-        phase: 'waiting',
+        guessedPlayers: new Set(), round: 1, totalRounds: 5,
+        drawTime: 60, timeLeft: 60, phase: 'waiting',
         scores: new Map(), timerInterval: null,
         turnsThisRound: 0, strokeHistory: [],
       })
     }
 
     const room = rooms.get(roomId)
-    // ... rest stays the same
     const existing = room.players.find(p => p.userId === userId)
 
     if (existing) {
@@ -263,7 +243,6 @@ io.on('connection', (socket) => {
     if (getActivePlayers(room).length >= 2 && room.phase === 'waiting') {
       room.currentDrawer = getActivePlayers(room)[0].id
       room.turnsThisRound = 0
-      room.round = 1
       setTimeout(() => startTurn(roomId), 2000)
     }
   })
@@ -317,9 +296,22 @@ io.on('connection', (socket) => {
       room.scores.set(socket.id, (room.scores.get(socket.id) || 0) + points)
       room.scores.set(room.currentDrawer, (room.scores.get(room.currentDrawer) || 0) + 30)
 
-      socket.emit('guess:correct', { points, word: room.currentWord })
-      socket.to(roomId).emit('chat:message', { userId, username, message: `${username} guessed the word! 🎉`, type: 'system' })
+      // Check word of the day bonus
+      const isWod = wordOfDay.word && room.currentWord.toLowerCase() === wordOfDay.word
+      const wodBonus = isWod ? wordOfDay.bonusPoints : 0
+      if (wodBonus > 0) {
+        room.scores.set(socket.id, (room.scores.get(socket.id) || 0) + wodBonus)
+      }
+
+      socket.emit('guess:correct', { points, word: room.currentWord, wodBonus })
+      const guessMsg = isWod
+        ? `${username} guessed the word! 🎉 (+${wodBonus} Word of the Day bonus! 🌟)`
+        : `${username} guessed the word! 🎉`
+      socket.to(roomId).emit('chat:message', { userId, username, message: guessMsg, type: 'system' })
       io.to(roomId).emit('scores:update', { scores: Object.fromEntries(room.scores) })
+      if (isWod) {
+        io.to(roomId).emit('wod:guessed', { username, bonusPoints: wodBonus })
+      }
 
       const nonDrawers = getActivePlayers(room).filter(p => p.id !== room.currentDrawer)
       if (room.guessedPlayers.size >= nonDrawers.length) {
