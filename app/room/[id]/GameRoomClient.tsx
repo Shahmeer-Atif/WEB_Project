@@ -551,6 +551,5 @@ export default function GameRoomClient({ roomId, user }: Props) {
         }
       `}</style>
     </div>
-    //change
   )
 }
