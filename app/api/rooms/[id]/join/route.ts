@@ -42,5 +42,6 @@ export async function POST(
     isPrivate: room.isPrivate,
     maxPlayers: room.maxPlayers,
     rounds: room.rounds,
+    drawTime: room.drawTime,
   })
 }

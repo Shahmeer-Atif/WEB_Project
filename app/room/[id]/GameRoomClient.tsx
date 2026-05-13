@@ -39,37 +39,33 @@ const TimerRing = ({ value, max = 60 }: { value: number; max?: number }) => {
 // ─── Word Display Bar ─────────────────────────────────────────────────────────
 const WordBar = ({ hint, wordLength, drawerName, isDrawer, word, phase }: { hint: string; wordLength: number; drawerName: string; isDrawer: boolean; word: string; phase: GamePhase }) => {
   if (phase === 'waiting') return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 16px', background: 'rgba(27,24,48,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 16px', background: 'rgba(27,24,48,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)' }}>
       <span style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 16 }}>waiting for players to join…</span>
     </div>
   )
   if (phase === 'reveal' || phase === 'end') return null
 
   return (
-    <div style={{ padding: '6px 16px', background: isDrawer ? 'rgba(245,158,11,0.08)' : 'rgba(49,46,129,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+    <div style={{ padding: '8px 16px', background: isDrawer ? 'rgba(245,158,11,0.08)' : 'rgba(49,46,129,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: isDrawer ? '#B45309' : '#5A5275', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
         {isDrawer ? '✏️ Your word to draw' : `🎯 ${drawerName} is drawing — guess it!`}
       </div>
-      {isDrawer ? (
-        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 22, color: '#B45309', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          {word}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', flexWrap: 'wrap', justifyContent: 'center' }}>
-          {hint.split('').map((ch, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <div style={{ width: 22, height: 28, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 15, background: ch !== '_' ? 'rgba(49,46,129,0.1)' : 'transparent', border: ch !== '_' ? '1px solid rgba(49,46,129,0.3)' : 'none', color: '#1B1830' }}>
-                {ch !== '_' ? ch.toUpperCase() : ''}
-              </div>
-              <div style={{ width: 18, height: 2, background: 'rgba(27,24,48,0.3)', borderRadius: 999 }} />
+      <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', flexWrap: 'wrap', justifyContent: 'center' }}>
+        {(isDrawer ? word : hint).split('').map((ch, i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <div style={{ width: 22, height: 28, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 15, background: ch !== '_' ? (isDrawer ? 'rgba(245,158,11,0.25)' : 'rgba(49,46,129,0.1)') : 'transparent', border: ch !== '_' ? `1px solid ${isDrawer ? 'rgba(245,158,11,0.5)' : 'rgba(49,46,129,0.3)'}` : 'none', color: '#1B1830' }}>
+              {ch !== '_' ? ch.toUpperCase() : ''}
             </div>
-          ))}
-        </div>
-      )}
-      {!isDrawer && <span style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 12 }}>{wordLength} letters</span>}
+            <div style={{ width: 18, height: 2, background: 'rgba(27,24,48,0.3)', borderRadius: 999 }} />
+          </div>
+        ))}
+      </div>
+      <span style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 12 }}>{wordLength} letters</span>
     </div>
   )
-}// ─── Invite Modal ─────────────────────────────────────────────────────────────
+}
+
+// ─── Invite Modal ─────────────────────────────────────────────────────────────
 const InviteModal = ({ roomId, roomName, onClose }: { roomId: string; roomName: string; onClose: () => void }) => {
   const [friends, setFriends] = useState<Friend[]>([])
   const [loading, setLoading] = useState(true)
@@ -305,10 +301,7 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, external
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0 }}>
-      {/* Toolbar is always rendered but hidden for non-drawers to maintain consistent layout */}
-      <div style={{ visibility: isDrawer ? 'visible' : 'hidden', height: isDrawer ? 'auto' : 0, overflow: 'hidden' }}>
-        <DrawToolbar color={color} setColor={setColor} brushSize={brushSize} setBrushSize={setBrushSize} tool={tool} setTool={setTool} onUndo={handleUndo} onClear={handleClear} />
-      </div>
+      {isDrawer && <DrawToolbar color={color} setColor={setColor} brushSize={brushSize} setBrushSize={setBrushSize} tool={tool} setTool={setTool} onUndo={handleUndo} onClear={handleClear} />}
       <div style={{ position: 'relative', background: '#FFFFFF', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 16px rgba(31,27,92,0.1)', border: isDrawer ? '2px solid rgba(49,46,129,0.2)' : '2px solid rgba(27,24,48,0.06)', flex: 1 }}>
         <canvas ref={canvasRef} width={800} height={500} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ display: 'block', width: '100%', height: '100%', cursor: !isDrawer ? 'default' : tool === 'eraser' ? 'cell' : 'crosshair', touchAction: 'none' }} />
         {!isDrawer && <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', borderRadius: 7, padding: '3px 8px', fontSize: 10, color: '#5A5275', fontWeight: 600 }}>👁 spectating</div>}
@@ -329,42 +322,22 @@ const RevealOverlay = ({ word }: { word: string }) => (
   </div>
 )
 
-const GameEndOverlay = ({ scores, players, onLeave, winners }: { scores: Record<string, number>; players: Player[]; onLeave: () => void; winners?: { id: string; username: string; score: number }[] }) => {
+const GameEndOverlay = ({ scores, players, onLeave }: { scores: Record<string, number>; players: Player[]; onLeave: () => void }) => {
   const sorted = [...players].sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0))
   const medals = ['🥇', '🥈', '🥉']
-
-  // Determine winner display
-  const winnerNames = winners && winners.length > 0 
-    ? winners.map(w => w.username).join(' & ')
-    : sorted.length > 0 ? sorted[0].username : ''
-  const isTie = winners && winners.length > 1
-
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(27,24,48,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: '#FBF6EC', borderRadius: 18, padding: '28px 28px', textAlign: 'center', width: '100%', maxWidth: 360, boxShadow: '0 20px 60px rgba(31,27,92,0.3)' }}>
-        {/* Winner crown */}
-        <div style={{ fontSize: 48, marginBottom: 4 }}>{isTie ? '🏆🏆' : '🏆'}</div>
-        <div style={{ fontFamily: "'Caveat',cursive", color: '#F59E0B', fontSize: 18, marginBottom: 2 }}>{isTie ? "It's a tie!" : 'winner'}</div>
-        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#312E81', fontSize: 26, marginBottom: 12 }}>
-          @{winnerNames}
-        </div>
-
-        <div style={{ width: '100%', height: 1, background: 'rgba(27,24,48,0.1)', marginBottom: 14 }} />
-
-        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 20, marginBottom: 4 }}>Game Over!</div>
-        <div style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 15, marginBottom: 14 }}>final scores</div>
-
+      <div style={{ background: '#FBF6EC', borderRadius: 18, padding: '28px 28px', textAlign: 'center', width: '100%', maxWidth: 340, boxShadow: '0 20px 60px rgba(31,27,92,0.3)' }}>
+        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 28, marginBottom: 4 }}>Game Over!</div>
+        <div style={{ fontFamily: "'Caveat',cursive", color: '#F59E0B', fontSize: 18, marginBottom: 18 }}>final scores</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 20 }}>
-          {sorted.slice(0, 5).map((p, i) => {
-            const isWinner = winners?.some(w => w.id === p.id) || (i === 0 && (!winners || winners.length === 0))
-            return (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', borderRadius: 10, background: isWinner ? 'rgba(245,158,11,0.18)' : 'rgba(255,255,255,0.7)', border: isWinner ? '1px solid rgba(245,158,11,0.35)' : '1px solid transparent' }}>
-                <span style={{ fontSize: 18 }}>{medals[i] || `${i + 1}.`}</span>
-                <span style={{ flex: 1, fontWeight: 600, color: '#1B1830', textAlign: 'left', fontSize: 13 }}>@{p.username}</span>
-                <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: isWinner ? '#B45309' : '#312E81', fontSize: 16 }}>{scores[p.id] || 0}</span>
-              </div>
-            )
-          })}
+          {sorted.slice(0, 5).map((p, i) => (
+            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', borderRadius: 10, background: i === 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.7)' }}>
+              <span style={{ fontSize: 18 }}>{medals[i] || `${i + 1}.`}</span>
+              <span style={{ flex: 1, fontWeight: 600, color: '#1B1830', textAlign: 'left', fontSize: 13 }}>@{p.username}</span>
+              <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#312E81', fontSize: 16 }}>{scores[p.id] || 0}</span>
+            </div>
+          ))}
         </div>
         <button onClick={onLeave} style={{ background: '#312E81', color: '#FBF6EC', border: 'none', fontFamily: "'Fredoka',sans-serif", fontWeight: 600, fontSize: 15, padding: '10px 24px', borderRadius: 11, cursor: 'pointer', boxShadow: '0 4px 0 -1px #1F1B5C' }}>Back to lobby</button>
       </div>
@@ -380,7 +353,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
   const [currentDrawerId, setCurrentDrawerId] = useState('')
   const [phase, setPhase] = useState<GamePhase>('waiting')
   const [round, setRound] = useState(1)
-  const [totalRounds, setTotalRounds] = useState(0)
+  const [totalRounds, setTotalRounds] = useState(5)
   const [timeLeft, setTimeLeft] = useState(60)
   const [hint, setHint] = useState('')
   const [wordLength, setWordLength] = useState(0)
@@ -392,24 +365,49 @@ export default function GameRoomClient({ roomId, user }: Props) {
   const [externalClear, setExternalClear] = useState(0)
   const [externalSync, setExternalSync] = useState<string | null>(null)
   const [showInvite, setShowInvite] = useState(false)
-  const [winners, setWinners] = useState<{ id: string; username: string; score: number }[]>([])
   const [roomName, setRoomName] = useState('')
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set())
+  const [roomSettings, setRoomSettings] = useState<{ totalRounds: number; drawTime: number } | null>(null)
   const isDrawer = socketId === currentDrawerId
 
+  // Fetch friends list
   useEffect(() => {
     fetch('/api/friends').then(r => r.json()).then(d => {
       setFriendIds(new Set((d.friends || []).map((f: { _id: string }) => f._id)))
     }).catch(() => {})
   }, [])
 
+  // Step 1: fetch room settings first (totalRounds, drawTime)
   useEffect(() => {
+    fetch(`/api/rooms/${roomId}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: '' }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.roomName && d.roomName !== roomId) setRoomName(d.roomName)
+        setRoomSettings({ totalRounds: d.rounds || 5, drawTime: d.drawTime || 60 })
+      })
+      .catch(() => setRoomSettings({ totalRounds: 5, drawTime: 60 }))
+  }, [roomId])
+
+  // Step 2: connect socket AFTER room settings are loaded so we pass correct values
+  useEffect(() => {
+    if (!roomSettings) return
+
     const socket = getSocket()
     socket.connect()
 
     socket.on('connect', () => {
       setSocketId(socket.id || '')
-      socket.emit('room:join', { roomId, username: user.username, userId: user.userId })
+      socket.emit('room:join', {
+        roomId,
+        username: user.username,
+        userId: user.userId,
+        totalRounds: roomSettings.totalRounds,
+        drawTime: roomSettings.drawTime,
+      })
       socket.emit('user:online', user.userId)
     })
 
@@ -418,39 +416,23 @@ export default function GameRoomClient({ roomId, user }: Props) {
       setTotalRounds(totalRounds); setPhase(phase); setTimeLeft(timeLeft)
     })
 
-    // Replace your current round:start handler with this:
-socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round, wordForDrawer, totalRounds }) => {
-  setCurrentDrawerId(drawerId);
-  setWordLength(wordLength);
-  setHint(hint);
-  setTimeLeft(timeLeft);
-  setRound(round);
-  setPhase('drawing');
-  // Only set myWord if server included it (drawer only)
-  if (wordForDrawer) {
-    setMyWord(wordForDrawer);
-  }
-  setRevealWord('');
-  setMessages([]);
-  setExternalClear(v => v + 1);
-  if (totalRounds) setTotalRounds(totalRounds);
-});
+    socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round, wordForDrawer, totalRounds }) => {
+      setCurrentDrawerId(drawerId); setWordLength(wordLength); setHint(hint)
+      setTimeLeft(timeLeft); setRound(round); setPhase('drawing')
+      // wordForDrawer is only sent when you ARE the drawer
+      // Always update myWord — empty string for guessers, actual word for drawer
+      setMyWord(wordForDrawer || '')
+      setRevealWord(''); setMessages([]); setExternalClear(v => v + 1)
+      if (totalRounds) setTotalRounds(totalRounds)
+    })
 
-// Keep your round:word backup listener - this is the primary way drawer gets word:
-socket.on('round:word', ({ word }) => {
-  if (word) {
-    setMyWord(word);
-  }
-});
+    // Backup: server also sends round:word separately for the drawer
+    socket.on('round:word', ({ word }) => {
+      setMyWord(word)
+    })
 
     socket.on('round:end', ({ word, scores }) => { setRevealWord(word); setScores(scores); setPhase('reveal'); setMyWord('') })
-    socket.on('game:end', ({ finalScores, winners }) => { 
-      const m: Record<string, number> = {}; 
-      finalScores.forEach((s: any) => { m[s.id] = s.score }); 
-      setScores(m); 
-      setWinners(winners || []);
-      setPhase('end'); 
-    })
+    socket.on('game:end', ({ finalScores }) => { const m: Record<string, number> = {}; finalScores.forEach((s: any) => { m[s.id] = s.score }); setScores(m); setPhase('end') })
     socket.on('timer:tick', ({ timeLeft }) => setTimeLeft(timeLeft))
     socket.on('scores:update', ({ scores }) => setScores(scores))
     socket.on('draw:stroke', (e: DrawEvent) => setExternalDraw({ ...e }))
@@ -467,40 +449,7 @@ socket.on('round:word', ({ word }) => {
       ['connect','room:state','round:start','round:word','round:end','game:end','timer:tick','scores:update','draw:stroke','draw:clear','draw:sync','chat:message','guess:correct'].forEach(e => socket.off(e))
       disconnectSocket()
     }
-  }, [roomId, user])
-
-  useEffect(() => {
-    // Fetch room settings FIRST
-    fetch(`/api/rooms/${roomId}/join`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: '' }) })
-      .then(r => r.json()).then(d => { 
-        if (d.roomName && d.roomName !== roomId) setRoomName(d.roomName)
-        
-        const socket = getSocket()
-        socket.connect()
-
-        socket.on('connect', () => {
-          setSocketId(socket.id || '')
-          socket.emit('room:join', { 
-            roomId, 
-            username: user.username, 
-            userId: user.userId,
-            totalRounds: d.rounds || 5,
-            drawTime: d.drawTime || 60,
-          })
-          socket.emit('user:online', user.userId)
-        })
-        // ... rest of socket listeners
-      }).catch(() => {
-        // Fallback: connect without settings
-        const socket = getSocket()
-        socket.connect()
-        socket.on('connect', () => {
-          setSocketId(socket.id || '')
-          socket.emit('room:join', { roomId, username: user.username, userId: user.userId })
-          socket.emit('user:online', user.userId)
-        })
-      })
-  }, [roomId, user])
+  }, [roomId, user, roomSettings])
 
   const handleDraw = useCallback((e: DrawEvent) => { getSocket().emit('draw:stroke', { roomId, ...e }) }, [roomId])
   const handleClear = useCallback(() => { getSocket().emit('draw:clear', { roomId }) }, [roomId])
@@ -514,8 +463,8 @@ socket.on('round:word', ({ word }) => {
     <div style={{ height: '100svh', backgroundColor: '#FBF6EC', backgroundImage: `radial-gradient(rgba(27,24,48,0.03) 1px,transparent 1px)`, backgroundSize: '4px 4px', fontFamily: "'Inter',system-ui,sans-serif", display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* ── Compact header ── */}
-      <header style={{ flexShrink: 0, padding: '4px 10px' }}>
-        <div style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 12, padding: '5px 12px', boxShadow: '0 2px 10px rgba(31,27,92,0.07)' }}>
+      <header style={{ flexShrink: 0, padding: '6px 10px' }}>
+        <div style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 12, padding: '7px 12px', boxShadow: '0 2px 10px rgba(31,27,92,0.07)' }}>
 
           {/* Row 1: logo | round/room | timer | invite | leave */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -558,7 +507,7 @@ socket.on('round:word', ({ word }) => {
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <DrawingCanvas isDrawer={isDrawer} onDraw={handleDraw} onClear={handleClear} onUndo={handleUndo} onSnapshot={handleSnapshot} externalDraw={externalDraw} externalClear={externalClear} externalSync={externalSync} />
           {phase === 'reveal' && <RevealOverlay word={revealWord} />}
-          {phase === 'end' && <GameEndOverlay scores={scores} players={players} onLeave={handleLeave} winners={winners} />}
+          {phase === 'end' && <GameEndOverlay scores={scores} players={players} onLeave={handleLeave} />}
         </div>
         <ChatPanel messages={messages} onSend={handleSendMessage} disabled={isDrawer} phase={phase} />
       </main>
@@ -582,30 +531,20 @@ socket.on('round:word', ({ word }) => {
         @media (max-width: 768px) {
           .game-main {
             grid-template-columns: 1fr !important;
-            grid-template-rows: auto minmax(280px, 45vh) 1fr !important;
+            grid-template-rows: auto 1fr auto !important;
             overflow-y: auto !important;
             gap: 8px !important;
           }
           .game-main > aside {
-            max-height: 120px !important;
+            max-height: 140px !important;
             overflow-y: auto !important;
-            order: 1;
           }
           .game-main > div:nth-child(2) {
-            order: 2;
-            min-height: 280px !important;
-            height: 45vh !important;
-            flex: none !important;
-          }
-          .game-main > div:nth-child(2) > div {
-            min-height: 280px !important;
-            height: 45vh !important;
+            min-height: 220px !important;
           }
           .game-main > div:last-child {
-            order: 3;
             min-height: 200px !important;
-            max-height: none !important;
-            flex: 1 !important;
+            max-height: 240px !important;
           }
           header { padding: 5px 8px !important; }
           main { padding: 6px 8px 8px !important; }
