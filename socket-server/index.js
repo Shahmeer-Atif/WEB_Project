@@ -210,7 +210,8 @@ io.on('connection', (socket) => {
 
     // ── Late joiner mid-game catch-up ─────────────────────────────────────────
     if (room.phase === 'drawing') {
-      // Send them the round info (without the word)
+      const isCurrentDrawer = socket.id === room.currentDrawer
+
       socket.emit('round:start', {
         drawerId: room.currentDrawer,
         wordLength: room.currentWord.length,
@@ -219,6 +220,11 @@ io.on('connection', (socket) => {
         round: room.round,
         totalRounds: room.totalRounds,
       })
+
+      // If this socket IS the drawer, send them their word
+      if (isCurrentDrawer) {
+        socket.emit('round:word', { word: room.currentWord })
+      }
 
       // If we have a canvas snapshot, send it immediately
       if (room.canvasSnapshot) {
