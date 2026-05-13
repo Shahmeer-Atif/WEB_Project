@@ -228,10 +228,20 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, external
   const [tool, setTool] = useState<'brush' | 'eraser'>('brush')
   const getCtx = () => canvasRef.current?.getContext('2d') ?? null
 
+  // Fill canvas white on mount
+  useEffect(() => {
+    const canvas = canvasRef.current; const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx) return
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+  }, [])
+
   const drawSegment = useCallback((ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, col: string, size: number, eraser: boolean) => {
     ctx.globalCompositeOperation = eraser ? 'destination-out' : 'source-over'
     ctx.strokeStyle = col; ctx.lineWidth = size; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
+    // Always reset so subsequent operations aren't affected
+    ctx.globalCompositeOperation = 'source-over'
   }, [])
 
   useEffect(() => {
@@ -246,7 +256,10 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, external
   useEffect(() => {
     if (!externalClear) return
     const ctx = getCtx(); const canvas = canvasRef.current; if (!ctx || !canvas) return
-    ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.globalCompositeOperation = 'source-over'
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
   }, [externalClear])
 
   useEffect(() => {
