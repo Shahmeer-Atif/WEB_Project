@@ -115,6 +115,22 @@ function LandingPage() {
 
   const switchMode = (newMode: Mode) => { setMode(newMode); setErrors({}); setTouched({}) }
 
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotStatus, setForgotStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!forgotEmail) return
+    setForgotStatus('sending')
+    await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: forgotEmail }),
+    })
+    setForgotStatus('sent')
+  }
+
   return (
     <div style={{
       height: '100svh',
@@ -254,7 +270,7 @@ function LandingPage() {
                     <input type="checkbox" style={{ accentColor: '#312E81', width: 14, height: 14 }} />
                     Keep me sketching
                   </label>
-                  <a href="#" style={{ fontSize: 13, fontWeight: 600, color: '#312E81', textDecoration: 'none' }}>Forgot?</a>
+                  <button type="button" onClick={() => setForgotOpen(true)} style={{ fontSize: 13, fontWeight: 600, color: '#312E81', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Forgot?</button>
                 </div>
               )}
 
@@ -291,6 +307,44 @@ function LandingPage() {
           GitHub
         </a>
       </footer>
+
+      {/* Forgot password modal */}
+      {forgotOpen && (
+        <>
+          <div onClick={() => { setForgotOpen(false); setForgotStatus('idle'); setForgotEmail('') }} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(27,24,48,0.4)', backdropFilter: 'blur(4px)' }} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 60, width: 'min(380px, 92vw)', background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.7)', boxShadow: '0 24px 64px rgba(31,27,92,0.2)', borderRadius: 20, padding: 28, fontFamily: "'Inter',sans-serif" }}>
+            {forgotStatus === 'sent' ? (
+              <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                <div style={{ fontSize: 44, marginBottom: 12 }}>📬</div>
+                <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 20, marginBottom: 8 }}>Check your inbox!</div>
+                <div style={{ color: '#5A5275', fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>If that email is registered, a reset link is on its way. It expires in 1 hour.</div>
+                <button onClick={() => { setForgotOpen(false); setForgotStatus('idle'); setForgotEmail('') }} style={{ background: '#312E81', color: '#FBF6EC', border: 'none', borderRadius: 12, padding: '10px 24px', fontFamily: "'Fredoka',sans-serif", fontWeight: 600, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 0 -1px #1F1B5C' }}>Done</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontFamily: "'Caveat',cursive", color: '#F59E0B', fontSize: 20, lineHeight: 1, marginBottom: 4 }}>no worries —</div>
+                  <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 20, marginBottom: 4 }}>Reset your password</div>
+                  <div style={{ fontSize: 13, color: '#5A5275' }}>Enter your email and we'll send a reset link.</div>
+                </div>
+                <form onSubmit={handleForgot} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#5A5275', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Email</label>
+                    <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 12, paddingLeft: 12 }}>
+                      <span style={{ fontSize: 14, opacity: 0.6 }}>✉️</span>
+                      <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', padding: '11px 8px', fontSize: 15, color: '#1B1830', fontFamily: "'Inter',sans-serif" }} />
+                    </div>
+                  </div>
+                  <button type="submit" disabled={forgotStatus === 'sending' || !forgotEmail} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: forgotStatus === 'sending' || !forgotEmail ? '#5A5275' : '#312E81', color: '#FBF6EC', border: 'none', borderRadius: 12, padding: '12px 0', fontFamily: "'Fredoka',sans-serif", fontWeight: 600, fontSize: 16, cursor: forgotStatus === 'sending' || !forgotEmail ? 'not-allowed' : 'pointer', boxShadow: '0 4px 0 -1px #1F1B5C' }}>
+                    {forgotStatus === 'sending' ? <><span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(251,246,236,0.3)', borderTopColor: '#FBF6EC', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} /> Sending…</> : '📬 Send reset link'}
+                  </button>
+                </form>
+                <button onClick={() => { setForgotOpen(false); setForgotStatus('idle') }} style={{ marginTop: 12, width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: '#5A5275', fontSize: 13, fontWeight: 500 }}>Cancel</button>
+              </>
+            )}
+          </div>
+        </>
+      )}
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap');
