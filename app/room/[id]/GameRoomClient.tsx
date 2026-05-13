@@ -22,7 +22,6 @@ const Icon = ({ d, size = 18 }: { d: string; size?: number }) => (
   </svg>
 )
 
-// ─── Timer Ring ───────────────────────────────────────────────────────────────
 const TimerRing = ({ value, max = 60 }: { value: number; max?: number }) => {
   const r = 20; const c = 2 * Math.PI * r; const offset = c - (value / max) * c; const danger = value <= 10
   return (
@@ -36,25 +35,24 @@ const TimerRing = ({ value, max = 60 }: { value: number; max?: number }) => {
   )
 }
 
-// ─── Word Display Bar ─────────────────────────────────────────────────────────
 const WordBar = ({ hint, wordLength, drawerName, isDrawer, word, phase }: { hint: string; wordLength: number; drawerName: string; isDrawer: boolean; word: string; phase: GamePhase }) => {
   if (phase === 'waiting') return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 16px', background: 'rgba(27,24,48,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 16px', background: 'rgba(27,24,48,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)' }}>
       <span style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 16 }}>waiting for players to join…</span>
     </div>
   )
   if (phase === 'reveal' || phase === 'end') return null
 
   return (
-    <div style={{ padding: '8px 16px', background: isDrawer ? 'rgba(245,158,11,0.08)' : 'rgba(49,46,129,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+    <div style={{ padding: '6px 16px', background: isDrawer ? 'rgba(245,158,11,0.08)' : 'rgba(49,46,129,0.04)', borderTop: '1px solid rgba(27,24,48,0.06)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: isDrawer ? '#B45309' : '#5A5275', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
         {isDrawer ? '✏️ Your word to draw' : `🎯 ${drawerName} is drawing — guess it!`}
       </div>
-      {isDrawer && word ? (
-        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 26, color: '#B45309', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-          {word}
+      {isDrawer ? (
+        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 22, color: '#B45309', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          {word || '…'}
         </div>
-      ) : !isDrawer ? (
+      ) : (
         <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', flexWrap: 'wrap', justifyContent: 'center' }}>
           {hint.split('').map((ch, i) => (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -65,32 +63,26 @@ const WordBar = ({ hint, wordLength, drawerName, isDrawer, word, phase }: { hint
             </div>
           ))}
         </div>
-      ) : null}
-      <span style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 12 }}>
-        {isDrawer && word ? `draw: ${word.toLowerCase()}` : `${wordLength} letters`}
-      </span>
+      )}
+      {!isDrawer && <span style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 12 }}>{wordLength} letters</span>}
     </div>
   )
 }
 
-// ─── Invite Modal ─────────────────────────────────────────────────────────────
 const InviteModal = ({ roomId, roomName, onClose }: { roomId: string; roomName: string; onClose: () => void }) => {
   const [friends, setFriends] = useState<Friend[]>([])
   const [loading, setLoading] = useState(true)
   const [sent, setSent] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState('')
-
   useEffect(() => {
     fetch('/api/friends').then(r => r.json()).then(d => { setFriends(d.friends || []); setLoading(false) }).catch(() => setLoading(false))
   }, [])
-
   const sendInvite = async (friendId: string) => {
     setSent(s => ({ ...s, [friendId]: true }))
     const res = await fetch('/api/invites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ receiverId: friendId, roomId, roomName }) })
     const data = await res.json()
     setToast(data.message); setTimeout(() => setToast(''), 2500)
   }
-
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(27,24,48,0.5)', backdropFilter: 'blur(4px)' }} />
@@ -130,7 +122,6 @@ const InviteModal = ({ roomId, roomName, onClose }: { roomId: string; roomName: 
   )
 }
 
-// ─── Leaderboard ──────────────────────────────────────────────────────────────
 const Leaderboard = ({ players, scores, currentDrawerId, mySocketId, friendIds }: { players: Player[]; scores: Record<string, number>; currentDrawerId: string; mySocketId: string; friendIds: Set<string> }) => {
   const sorted = [...players].sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0))
   return (
@@ -165,7 +156,6 @@ const Leaderboard = ({ players, scores, currentDrawerId, mySocketId, friendIds }
   )
 }
 
-// ─── Chat Panel ───────────────────────────────────────────────────────────────
 const ChatPanel = ({ messages, onSend, disabled, phase }: { messages: ChatMessage[]; onSend: (msg: string) => void; disabled: boolean; phase: GamePhase }) => {
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -199,7 +189,6 @@ const ChatPanel = ({ messages, onSend, disabled, phase }: { messages: ChatMessag
   )
 }
 
-// ─── Draw Toolbar ─────────────────────────────────────────────────────────────
 const DrawToolbar = ({ color, setColor, brushSize, setBrushSize, onUndo, onClear, tool, setTool }: { color: string; setColor: (c: string) => void; brushSize: number; setBrushSize: (s: number) => void; onUndo: () => void; onClear: () => void; tool: 'brush' | 'eraser'; setTool: (t: 'brush' | 'eraser') => void }) => (
   <div style={{ background: 'rgba(255,255,255,0.95)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 10, padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flexShrink: 0 }}>
     <div style={{ display: 'flex', gap: 4 }}>
@@ -225,7 +214,6 @@ const DrawToolbar = ({ color, setColor, brushSize, setBrushSize, onUndo, onClear
   </div>
 )
 
-// ─── Drawing Canvas ───────────────────────────────────────────────────────────
 const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, externalDraw, externalClear, externalSync }: { isDrawer: boolean; onDraw: (e: DrawEvent) => void; onClear: () => void; onUndo: (img: string) => void; onSnapshot: (img: string) => void; externalDraw: DrawEvent | null; externalClear: number; externalSync: string | null }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDrawingRef = useRef(false)
@@ -236,20 +224,18 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, external
   const [tool, setTool] = useState<'brush' | 'eraser'>('brush')
   const getCtx = () => canvasRef.current?.getContext('2d') ?? null
 
-  // Fill canvas white on mount
-  useEffect(() => {
-    const canvas = canvasRef.current; const ctx = canvas?.getContext('2d')
-    if (!canvas || !ctx) return
-    ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-  }, [])
-
   const drawSegment = useCallback((ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, col: string, size: number, eraser: boolean) => {
     ctx.globalCompositeOperation = eraser ? 'destination-out' : 'source-over'
     ctx.strokeStyle = col; ctx.lineWidth = size; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
-    // Always reset so subsequent operations aren't affected
     ctx.globalCompositeOperation = 'source-over'
+  }, [])
+
+  // Fill white on mount
+  useEffect(() => {
+    const canvas = canvasRef.current; const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx) return
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, canvas.width, canvas.height)
   }, [])
 
   useEffect(() => {
@@ -266,8 +252,7 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, external
     const ctx = getCtx(); const canvas = canvasRef.current; if (!ctx || !canvas) return
     ctx.globalCompositeOperation = 'source-over'
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, canvas.width, canvas.height)
   }, [externalClear])
 
   useEffect(() => {
@@ -317,12 +302,17 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, external
   const handleClear = () => {
     const ctx = getCtx(); const canvas = canvasRef.current; if (!ctx || !canvas) return
     snapshotsRef.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height))
-    ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.globalCompositeOperation = 'source-over'; onClear()
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, canvas.width, canvas.height)
+    onClear()
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0 }}>
-      {isDrawer && <DrawToolbar color={color} setColor={setColor} brushSize={brushSize} setBrushSize={setBrushSize} tool={tool} setTool={setTool} onUndo={handleUndo} onClear={handleClear} />}
+      <div style={{ visibility: isDrawer ? 'visible' : 'hidden', height: isDrawer ? 'auto' : 0, overflow: 'hidden' }}>
+        <DrawToolbar color={color} setColor={setColor} brushSize={brushSize} setBrushSize={setBrushSize} tool={tool} setTool={setTool} onUndo={handleUndo} onClear={handleClear} />
+      </div>
       <div style={{ position: 'relative', background: '#FFFFFF', borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 16px rgba(31,27,92,0.1)', border: isDrawer ? '2px solid rgba(49,46,129,0.2)' : '2px solid rgba(27,24,48,0.06)', flex: 1 }}>
         <canvas ref={canvasRef} width={800} height={500} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={startDrawing} onTouchMove={draw} onTouchEnd={stopDrawing} style={{ display: 'block', width: '100%', height: '100%', cursor: !isDrawer ? 'default' : tool === 'eraser' ? 'cell' : 'crosshair', touchAction: 'none' }} />
         {!isDrawer && <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', borderRadius: 7, padding: '3px 8px', fontSize: 10, color: '#5A5275', fontWeight: 600 }}>👁 spectating</div>}
@@ -331,7 +321,6 @@ const DrawingCanvas = ({ isDrawer, onDraw, onClear, onUndo, onSnapshot, external
   )
 }
 
-// ─── Overlays ─────────────────────────────────────────────────────────────────
 const RevealOverlay = ({ word }: { word: string }) => (
   <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(27,24,48,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
     <div style={{ background: '#FBF6EC', borderRadius: 18, padding: '28px 32px', textAlign: 'center', maxWidth: 320, width: '100%', boxShadow: '0 20px 60px rgba(31,27,92,0.3)' }}>
@@ -343,22 +332,31 @@ const RevealOverlay = ({ word }: { word: string }) => (
   </div>
 )
 
-const GameEndOverlay = ({ scores, players, onLeave }: { scores: Record<string, number>; players: Player[]; onLeave: () => void }) => {
+const GameEndOverlay = ({ scores, players, onLeave, winners }: { scores: Record<string, number>; players: Player[]; onLeave: () => void; winners?: { id: string; username: string; score: number }[] }) => {
   const sorted = [...players].sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0))
   const medals = ['🥇', '🥈', '🥉']
+  const winnerNames = winners && winners.length > 0 ? winners.map(w => w.username).join(' & ') : sorted.length > 0 ? sorted[0].username : ''
+  const isTie = winners && winners.length > 1
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(27,24,48,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: '#FBF6EC', borderRadius: 18, padding: '28px 28px', textAlign: 'center', width: '100%', maxWidth: 340, boxShadow: '0 20px 60px rgba(31,27,92,0.3)' }}>
-        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 28, marginBottom: 4 }}>Game Over!</div>
-        <div style={{ fontFamily: "'Caveat',cursive", color: '#F59E0B', fontSize: 18, marginBottom: 18 }}>final scores</div>
+      <div style={{ background: '#FBF6EC', borderRadius: 18, padding: '28px 28px', textAlign: 'center', width: '100%', maxWidth: 360, boxShadow: '0 20px 60px rgba(31,27,92,0.3)' }}>
+        <div style={{ fontSize: 48, marginBottom: 4 }}>{isTie ? '🏆🏆' : '🏆'}</div>
+        <div style={{ fontFamily: "'Caveat',cursive", color: '#F59E0B', fontSize: 18, marginBottom: 2 }}>{isTie ? "It's a tie!" : 'winner'}</div>
+        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#312E81', fontSize: 26, marginBottom: 12 }}>@{winnerNames}</div>
+        <div style={{ width: '100%', height: 1, background: 'rgba(27,24,48,0.1)', marginBottom: 14 }} />
+        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 20, marginBottom: 4 }}>Game Over!</div>
+        <div style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 15, marginBottom: 14 }}>final scores</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 20 }}>
-          {sorted.slice(0, 5).map((p, i) => (
-            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', borderRadius: 10, background: i === 0 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.7)' }}>
-              <span style={{ fontSize: 18 }}>{medals[i] || `${i + 1}.`}</span>
-              <span style={{ flex: 1, fontWeight: 600, color: '#1B1830', textAlign: 'left', fontSize: 13 }}>@{p.username}</span>
-              <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#312E81', fontSize: 16 }}>{scores[p.id] || 0}</span>
-            </div>
-          ))}
+          {sorted.slice(0, 5).map((p, i) => {
+            const isWinner = winners?.some(w => w.id === p.id) || (i === 0 && (!winners || winners.length === 0))
+            return (
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 12px', borderRadius: 10, background: isWinner ? 'rgba(245,158,11,0.18)' : 'rgba(255,255,255,0.7)', border: isWinner ? '1px solid rgba(245,158,11,0.35)' : '1px solid transparent' }}>
+                <span style={{ fontSize: 18 }}>{medals[i] || `${i + 1}.`}</span>
+                <span style={{ flex: 1, fontWeight: 600, color: '#1B1830', textAlign: 'left', fontSize: 13 }}>@{p.username}</span>
+                <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: isWinner ? '#B45309' : '#312E81', fontSize: 16 }}>{scores[p.id] || 0}</span>
+              </div>
+            )
+          })}
         </div>
         <button onClick={onLeave} style={{ background: '#312E81', color: '#FBF6EC', border: 'none', fontFamily: "'Fredoka',sans-serif", fontWeight: 600, fontSize: 15, padding: '10px 24px', borderRadius: 11, cursor: 'pointer', boxShadow: '0 4px 0 -1px #1F1B5C' }}>Back to lobby</button>
       </div>
@@ -366,7 +364,6 @@ const GameEndOverlay = ({ scores, players, onLeave }: { scores: Record<string, n
   )
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function GameRoomClient({ roomId, user }: Props) {
   const router = useRouter()
   const [players, setPlayers] = useState<Player[]>([])
@@ -374,7 +371,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
   const [currentDrawerId, setCurrentDrawerId] = useState('')
   const [phase, setPhase] = useState<GamePhase>('waiting')
   const [round, setRound] = useState(1)
-  const [totalRounds, setTotalRounds] = useState(5)
+  const [totalRounds, setTotalRounds] = useState(0)
   const [timeLeft, setTimeLeft] = useState(60)
   const [hint, setHint] = useState('')
   const [wordLength, setWordLength] = useState(0)
@@ -386,25 +383,21 @@ export default function GameRoomClient({ roomId, user }: Props) {
   const [externalClear, setExternalClear] = useState(0)
   const [externalSync, setExternalSync] = useState<string | null>(null)
   const [showInvite, setShowInvite] = useState(false)
+  const [winners, setWinners] = useState<{ id: string; username: string; score: number }[]>([])
   const [roomName, setRoomName] = useState('')
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set())
   const [roomSettings, setRoomSettings] = useState<{ totalRounds: number; drawTime: number } | null>(null)
   const isDrawer = socketId === currentDrawerId
 
-  // Fetch friends list
   useEffect(() => {
     fetch('/api/friends').then(r => r.json()).then(d => {
       setFriendIds(new Set((d.friends || []).map((f: { _id: string }) => f._id)))
     }).catch(() => {})
   }, [])
 
-  // Step 1: fetch room settings first (totalRounds, drawTime)
+  // Step 1: fetch room settings
   useEffect(() => {
-    fetch(`/api/rooms/${roomId}/join`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: '' }),
-    })
+    fetch(`/api/rooms/${roomId}/join`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: '' }) })
       .then(r => r.json())
       .then(d => {
         if (d.roomName && d.roomName !== roomId) setRoomName(d.roomName)
@@ -413,7 +406,7 @@ export default function GameRoomClient({ roomId, user }: Props) {
       .catch(() => setRoomSettings({ totalRounds: 5, drawTime: 60 }))
   }, [roomId])
 
-  // Step 2: connect socket AFTER room settings are loaded so we pass correct values
+  // Step 2: connect socket only after room settings loaded
   useEffect(() => {
     if (!roomSettings) return
 
@@ -440,20 +433,19 @@ export default function GameRoomClient({ roomId, user }: Props) {
     socket.on('round:start', ({ drawerId, wordLength, hint, timeLeft, round, wordForDrawer, totalRounds }) => {
       setCurrentDrawerId(drawerId); setWordLength(wordLength); setHint(hint)
       setTimeLeft(timeLeft); setRound(round); setPhase('drawing')
-      // wordForDrawer is only sent when you ARE the drawer
-      // Always update myWord — empty string for guessers, actual word for drawer
-      setMyWord(wordForDrawer || '')
+      if (wordForDrawer) setMyWord(wordForDrawer)
       setRevealWord(''); setMessages([]); setExternalClear(v => v + 1)
       if (totalRounds) setTotalRounds(totalRounds)
     })
 
-    // Backup: server also sends round:word separately for the drawer
-    socket.on('round:word', ({ word }) => {
-      setMyWord(word)
-    })
+    socket.on('round:word', ({ word }) => { if (word) setMyWord(word) })
 
     socket.on('round:end', ({ word, scores }) => { setRevealWord(word); setScores(scores); setPhase('reveal'); setMyWord('') })
-    socket.on('game:end', ({ finalScores }) => { const m: Record<string, number> = {}; finalScores.forEach((s: any) => { m[s.id] = s.score }); setScores(m); setPhase('end') })
+    socket.on('game:end', ({ finalScores, winners }) => {
+      const m: Record<string, number> = {}
+      finalScores.forEach((s: any) => { m[s.id] = s.score })
+      setScores(m); setWinners(winners || []); setPhase('end')
+    })
     socket.on('timer:tick', ({ timeLeft }) => setTimeLeft(timeLeft))
     socket.on('scores:update', ({ scores }) => setScores(scores))
     socket.on('draw:stroke', (e: DrawEvent) => setExternalDraw({ ...e }))
@@ -462,8 +454,9 @@ export default function GameRoomClient({ roomId, user }: Props) {
     socket.on('chat:message', ({ userId, username, message, type }) => {
       setMessages(prev => [...prev, { id: Date.now() + Math.random().toString(), userId, username, message, type }])
     })
-    socket.on('guess:correct', ({ points, word }) => {
-      setMessages(prev => [...prev, { id: Date.now().toString(), userId: user.userId, username: user.username, message: `✓ Guessed "${word}" — +${points} pts`, type: 'correct' }])
+    socket.on('guess:correct', ({ points, word, wodBonus }) => {
+      const bonus = wodBonus ? ` (+${wodBonus} WOD bonus! 🌟)` : ''
+      setMessages(prev => [...prev, { id: Date.now().toString(), userId: user.userId, username: user.username, message: `✓ Guessed "${word}" — +${points} pts${bonus}`, type: 'correct' }])
     })
 
     return () => {
@@ -482,12 +475,8 @@ export default function GameRoomClient({ roomId, user }: Props) {
 
   return (
     <div style={{ height: '100svh', backgroundColor: '#FBF6EC', backgroundImage: `radial-gradient(rgba(27,24,48,0.03) 1px,transparent 1px)`, backgroundSize: '4px 4px', fontFamily: "'Inter',system-ui,sans-serif", display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-      {/* ── Compact header ── */}
-      <header style={{ flexShrink: 0, padding: '6px 10px' }}>
-        <div style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 12, padding: '7px 12px', boxShadow: '0 2px 10px rgba(31,27,92,0.07)' }}>
-
-          {/* Row 1: logo | round/room | timer | invite | leave */}
+      <header style={{ flexShrink: 0, padding: '4px 10px' }}>
+        <div style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.7)', borderRadius: 12, padding: '5px 12px', boxShadow: '0 2px 10px rgba(31,27,92,0.07)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <a href="/lobby" style={{ display: 'flex', alignItems: 'center', gap: 5, textDecoration: 'none', flexShrink: 0 }}>
               <div style={{ width: 26, height: 26, borderRadius: 7, background: '#312E81', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(-6deg)', flexShrink: 0 }}>
@@ -495,22 +484,17 @@ export default function GameRoomClient({ roomId, user }: Props) {
               </div>
               <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 15, display: 'none' }} className="desktop-only">inkblot</span>
             </a>
-
             <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '3px 8px', background: 'rgba(27,24,48,0.05)', borderRadius: 7 }}>
               <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 13 }}>{round}</span>
               <span style={{ color: '#5A5275', fontSize: 11 }}>/{totalRounds}</span>
               <span style={{ color: 'rgba(27,24,48,0.2)', fontSize: 11, margin: '0 2px' }}>·</span>
               <span style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 600, color: '#1B1830', fontSize: 12, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roomName || roomId}</span>
             </div>
-
             <div style={{ flex: 1 }} />
-
             {phase === 'drawing' && <TimerRing value={timeLeft} max={60} />}
-
             <button onClick={() => setShowInvite(true)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: '#059669', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
               👥 <span className="desktop-only" style={{ display: 'none' }}>Invite</span>
             </button>
-
             <button onClick={handleLeave} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.7)', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 8, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: '#5A5275', cursor: 'pointer', flexShrink: 0 }}>
               <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" size={12} />
               <span className="desktop-only" style={{ display: 'none' }}>Leave</span>
@@ -519,16 +503,14 @@ export default function GameRoomClient({ roomId, user }: Props) {
         </div>
       </header>
 
-      {/* ── Word bar — always visible, full width ── */}
       <WordBar hint={hint} wordLength={wordLength} drawerName={drawerName} isDrawer={isDrawer} word={myWord} phase={phase} />
 
-      {/* ── Main game grid ── */}
       <main style={{ flex: 1, padding: '8px 10px 10px', display: 'grid', gridTemplateColumns: '160px 1fr 190px', gridTemplateRows: '1fr', gap: 8, minHeight: 0 }} className="game-main">
         <Leaderboard players={players} scores={scores} currentDrawerId={currentDrawerId} mySocketId={socketId} friendIds={friendIds} />
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <DrawingCanvas isDrawer={isDrawer} onDraw={handleDraw} onClear={handleClear} onUndo={handleUndo} onSnapshot={handleSnapshot} externalDraw={externalDraw} externalClear={externalClear} externalSync={externalSync} />
           {phase === 'reveal' && <RevealOverlay word={revealWord} />}
-          {phase === 'end' && <GameEndOverlay scores={scores} players={players} onLeave={handleLeave} />}
+          {phase === 'end' && <GameEndOverlay scores={scores} players={players} onLeave={handleLeave} winners={winners} />}
         </div>
         <ChatPanel messages={messages} onSend={handleSendMessage} disabled={isDrawer} phase={phase} />
       </main>
@@ -540,33 +522,17 @@ export default function GameRoomClient({ roomId, user }: Props) {
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(27,24,48,0.12); border-radius: 4px; }
-
-        /* Desktop: show text labels */
         @media (min-width: 769px) {
           .desktop-only { display: inline !important; }
           header > div > div > a span { display: inline !important; }
           header button span { display: inline !important; }
         }
-
-        /* Mobile: stack layout */
         @media (max-width: 768px) {
-          .game-main {
-            grid-template-columns: 1fr !important;
-            grid-template-rows: auto 1fr auto !important;
-            overflow-y: auto !important;
-            gap: 8px !important;
-          }
-          .game-main > aside {
-            max-height: 140px !important;
-            overflow-y: auto !important;
-          }
-          .game-main > div:nth-child(2) {
-            min-height: 220px !important;
-          }
-          .game-main > div:last-child {
-            min-height: 200px !important;
-            max-height: 240px !important;
-          }
+          .game-main { grid-template-columns: 1fr !important; grid-template-rows: auto minmax(280px, 45vh) 1fr !important; overflow-y: auto !important; gap: 8px !important; }
+          .game-main > aside { max-height: 120px !important; overflow-y: auto !important; order: 1; }
+          .game-main > div:nth-child(2) { order: 2; min-height: 280px !important; height: 45vh !important; flex: none !important; }
+          .game-main > div:nth-child(2) > div { min-height: 280px !important; height: 45vh !important; }
+          .game-main > div:last-child { order: 3; min-height: 200px !important; max-height: none !important; flex: 1 !important; }
           header { padding: 5px 8px !important; }
           main { padding: 6px 8px 8px !important; }
         }
