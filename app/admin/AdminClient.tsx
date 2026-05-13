@@ -275,14 +275,16 @@ const OverviewSection = ({ users }: { users: IUser[] }) => {
 }
 
 // ─── Users Section ────────────────────────────────────────────────────────────
-const UsersSection = ({ users, onUpdate, currentUserId }: {
+const UsersSection = ({ users, onUpdate, onDelete, currentUserId }: {
   users: IUser[]
   onUpdate: (userId: string, updates: { role?: 'admin' | 'user'; isActive?: boolean }) => Promise<void>
+  onDelete: (userId: string) => Promise<void>
   currentUserId: string
 }) => {
   const [filter, setFilter] = useState<FilterType>('All')
   const [search, setSearch] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   const filtered = users.filter(u => {
     const matchesFilter = filter === 'All' || (filter === 'Active' ? u.isActive : !u.isActive)
@@ -296,6 +298,15 @@ const UsersSection = ({ users, onUpdate, currentUserId }: {
     setUpdating(userId)
     await onUpdate(userId, updates)
     setUpdating(null)
+  }
+
+  const handleDelete = async (userId: string) => {
+    const u = users.find(x => x._id === userId)
+    if (!u) return
+    if (!window.confirm(`Delete @${u.username}? This cannot be undone.`)) return
+    setDeleting(userId)
+    await onDelete(userId)
+    setDeleting(null)
   }
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -364,11 +375,12 @@ const UsersSection = ({ users, onUpdate, currentUserId }: {
               {filtered.map(u => {
                 const isMe = u._id === currentUserId
                 const isLoading = updating === u._id
+                const isDeleting = deleting === u._id
                 return (
                   <tr key={u._id} style={{
                     borderBottom: '1px solid rgba(27,24,48,0.05)',
                     background: isMe ? 'rgba(245,158,11,0.05)' : 'transparent',
-                    opacity: isLoading ? 0.6 : 1,
+                    opacity: isLoading || isDeleting ? 0.6 : 1,
                     transition: 'opacity 0.2s',
                   }}>
                     {/* User */}
@@ -789,7 +801,7 @@ export default function AdminClient({ user }: Props) {
 
     switch (active) {
       case 'overview': return <OverviewSection users={users} />
-      case 'users':    return <UsersSection users={users} onUpdate={handleUpdateUser} currentUserId={user.userId} />
+      case 'users':    return <UsersSection users={users} onUpdate={handleUpdateUser} onDelete={handleDeleteUser} currentUserId={user.userId} />
       case 'words':    return <WordBankSection />
       case 'wordofday': return <WordOfDaySection />
       case 'rooms':    return <RoomsSection />
