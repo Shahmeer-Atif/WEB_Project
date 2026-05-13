@@ -765,8 +765,21 @@ export default function AdminClient({ user }: Props) {
         return
       }
       const data = await res.json()
-      // Update local state instantly — no need to refetch
       setUsers(prev => prev.map(u => u._id === userId ? { ...u, ...data.user } : u))
+    } catch {
+      alert('Network error. Please try again.')
+    }
+  }
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/admin/users?userId=${userId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.message || 'Delete failed')
+        return
+      }
+      setUsers(prev => prev.filter(u => u._id !== userId))
     } catch {
       alert('Network error. Please try again.')
     }
