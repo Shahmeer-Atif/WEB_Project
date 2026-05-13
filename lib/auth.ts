@@ -23,7 +23,7 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax' as const,
-  maxAge: 60 * 60 * 24 * 7,
+  maxAge: 60 * 30, // 30 minutes — refreshed on every request
   path: '/',
 }
 
@@ -33,6 +33,13 @@ export function setAuthCookie(response: NextResponse, token: string): void {
 
 export function clearAuthCookie(response: NextResponse): void {
   response.cookies.set(COOKIE_NAME, '', { ...COOKIE_OPTIONS, maxAge: 0 })
+}
+
+// ─── Refresh cookie (sliding session) ───────────────────────────────────────
+export async function refreshAuthCookie(response: NextResponse, payload: JWTPayload): Promise<void> {
+  const { signToken } = await import('@/lib/jwt')
+  const newToken = await signToken(payload)
+  response.cookies.set(COOKIE_NAME, newToken, COOKIE_OPTIONS)
 }
 
 // ─── Request auth reader ──────────────────────────────────────────────────────

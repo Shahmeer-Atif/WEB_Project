@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { JWTPayload } from '@/lib/jwt'
 import FriendsPanel from '@/components/FriendsPanel'
 import { disconnectSocket } from '@/lib/socket'
+import { useInactivityLogout } from '@/hooks/useInactivityLogout'
 
 interface Props { user: JWTPayload }
 interface RoomSettings {
@@ -261,6 +262,7 @@ const WordOfDayCard = () => {
 
 export default function LobbyClient({ user }: Props) {
   const router = useRouter()
+  const { showWarning, stayLoggedIn } = useInactivityLogout()
   const [searching, setSearching] = useState(false)
   const [friendsOpen, setFriendsOpen] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
@@ -347,6 +349,26 @@ export default function LobbyClient({ user }: Props) {
         <div style={{ display: 'flex', gap: 14 }}>{['Privacy', 'Rules', 'Discord', ...(user.role === 'admin' ? ['Admin'] : []), 'v0.3.1'].map(l => <a key={l} href={l === 'Admin' ? '/admin' : '#'} style={{ color: '#5A5275', textDecoration: 'none' }}>{l}</a>)}</div>
       </footer>
       <FriendsPanel isOpen={friendsOpen} onClose={() => setFriendsOpen(false)} myUserId={user.userId} />
+      {/* Inactivity warning modal */}
+      {showWarning && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(27,24,48,0.5)', backdropFilter: 'blur(4px)' }} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 60, width: 'min(360px,92vw)', background: 'rgba(255,255,255,0.97)', border: '1px solid rgba(255,255,255,0.7)', boxShadow: '0 24px 64px rgba(31,27,92,0.2)', borderRadius: 20, padding: 28, fontFamily: "'Inter',sans-serif", textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>⏰</div>
+            <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, color: '#1B1830', fontSize: 22, marginBottom: 8 }}>Still there?</div>
+            <div style={{ color: '#5A5275', fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>You'll be logged out in 5 minutes due to inactivity.</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={stayLoggedIn} style={{ flex: 1, background: '#312E81', color: '#FBF6EC', border: 'none', borderRadius: 12, padding: '11px 0', fontFamily: "'Fredoka',sans-serif", fontWeight: 600, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 0 -1px #1F1B5C' }}>
+                ✓ Keep me in
+              </button>
+              <button onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/' }} style={{ flex: 1, background: 'rgba(27,24,48,0.07)', color: '#5A5275', border: '1px solid rgba(27,24,48,0.1)', borderRadius: 12, padding: '11px 0', fontFamily: "'Fredoka',sans-serif", fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>
+                Log out
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap');
         @keyframes pulseRing { 0% { transform: scale(.92); opacity: .5; } 70% { transform: scale(1.35); opacity: 0; } 100% { transform: scale(1.35); opacity: 0; } }
