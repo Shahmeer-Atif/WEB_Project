@@ -50,17 +50,25 @@ const WordBar = ({ hint, wordLength, drawerName, isDrawer, word, phase }: { hint
       <div style={{ fontSize: 10, fontWeight: 700, color: isDrawer ? '#B45309' : '#5A5275', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
         {isDrawer ? '✏️ Your word to draw' : `🎯 ${drawerName} is drawing — guess it!`}
       </div>
-      <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {(isDrawer ? word : hint).split('').map((ch, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <div style={{ width: 22, height: 28, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 15, background: ch !== '_' ? (isDrawer ? 'rgba(245,158,11,0.25)' : 'rgba(49,46,129,0.1)') : 'transparent', border: ch !== '_' ? `1px solid ${isDrawer ? 'rgba(245,158,11,0.5)' : 'rgba(49,46,129,0.3)'}` : 'none', color: '#1B1830' }}>
-              {ch !== '_' ? ch.toUpperCase() : ''}
+      {isDrawer && word ? (
+        <div style={{ fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 26, color: '#B45309', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          {word}
+        </div>
+      ) : !isDrawer ? (
+        <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {hint.split('').map((ch, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <div style={{ width: 22, height: 28, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Fredoka',sans-serif", fontWeight: 700, fontSize: 15, background: ch !== '_' ? 'rgba(49,46,129,0.1)' : 'transparent', border: ch !== '_' ? '1px solid rgba(49,46,129,0.3)' : 'none', color: '#1B1830' }}>
+                {ch !== '_' ? ch.toUpperCase() : ''}
+              </div>
+              <div style={{ width: 18, height: 2, background: 'rgba(27,24,48,0.3)', borderRadius: 999 }} />
             </div>
-            <div style={{ width: 18, height: 2, background: 'rgba(27,24,48,0.3)', borderRadius: 999 }} />
-          </div>
-        ))}
-      </div>
-      <span style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 12 }}>{wordLength} letters</span>
+          ))}
+        </div>
+      ) : null}
+      <span style={{ fontFamily: "'Caveat',cursive", color: '#5A5275', fontSize: 12 }}>
+        {isDrawer && word ? `draw: ${word.toLowerCase()}` : `${wordLength} letters`}
+      </span>
     </div>
   )
 }
@@ -565,5 +573,4 @@ export default function GameRoomClient({ roomId, user }: Props) {
       `}</style>
     </div>
   )
-  //change
 }
