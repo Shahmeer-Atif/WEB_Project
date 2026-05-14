@@ -168,6 +168,10 @@ function LandingPage() {
           </div>
         </div>
 
+        <a href="/about" style={{ padding: '8px 18px', background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)', border: '1px solid rgba(27,24,48,0.12)', borderRadius: 999, fontSize: 13, fontWeight: 600, color: '#2A2545', textDecoration: 'none', flexShrink: 0 }}>
+          About & Contact
+        </a>
+
       </header>
 
       {/* Main layout */}
