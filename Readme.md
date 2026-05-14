@@ -1,25 +1,139 @@
-# 🎨 Inkblot — Draw. Guess. Repeat.
+# 🎨 inkblot — Real-Time Multiplayer Drawing Game
 
-A real-time multiplayer drawing and guessing game built with Next.js, Socket.IO, and MongoDB.
+> draw • guess • repeat
 
-## Tech Stack
-
-- **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS
-- **Auth**: JWT (httpOnly cookies), bcrypt password hashing
-- **Database**: MongoDB Atlas (Mongoose)
-- **Real-time**: Socket.IO on Railway
-- **Deployment**: Vercel (frontend) + Railway (socket server)
+A real-time multiplayer drawing and guessing game inspired by Skribbl.io, built as a full-stack web application for the Web Programming course project.
 
 ---
 
-## Getting Started (for collaborators)
+## 👥 Team
 
-### 1. Clone the repo
+| Name          | Roll No  |
+| ------------- | -------- |
+| Shahmeer Atif | 23i-0711 |
+| Muhammad Umar | 23i-0782 |
+
+---
+
+## 🚀 Live Demo
+
+**Frontend:** https://web-project-seven-orpin.vercel.app  
+**Socket Server:** https://webproject-production-c326.up.railway.app
+
+---
+
+## 📖 About
+
+Inkblot is a real-time scribble battle where players take turns drawing a secret word while others race to guess it in the chat. Each player draws once per round, scores are tracked live, and the person with the most points at the end wins.
+
+---
+
+## ✨ Features
+
+### Gameplay
+
+- Real-time drawing canvas with brush, eraser, color palette, brush sizes, undo, and clear
+- Live stroke synchronization across all players via Socket.IO
+- Word hints displayed as letter dashes for guessers
+- Animated timer ring counting down each turn
+- Word of the Day with bonus points set by admin
+- Late joiner canvas catch-up (snapshot replay)
+- Tie detection and winner announcement overlay
+
+### Rooms
+
+- Quick Play — instantly joins or creates an open room
+- Custom Room — configurable player count (4–12), rounds (3–10), draw time (30–120s)
+- Password-protected private rooms
+- Join by Room ID with password support
+- Invite friends directly from the game room
+
+### Authentication & Security
+
+- JWT-based authentication with httpOnly cookies
+- bcrypt password hashing (12 salt rounds)
+- Secure password comparison (never string equality)
+- Token-based password reset via email (Resend)
+- Session expires after **30 minutes of inactivity** (sliding window)
+- Inactivity warning modal 5 minutes before logout
+
+### Social
+
+- Friends system — send/accept/reject friend requests
+- Friend search by username
+- In-game friend invites with real-time delivery via Socket.IO
+- Add Friend button on the leaderboard during games
+
+### Admin Panel
+
+- Dashboard with live user stats
+- User management — view, activate/suspend, change roles, delete
+- Role-based access control (admin / user)
+- Word of the Day management — set word, hint, and bonus points per date
+- Word Bank (Easy / Medium / Hard / Custom categories)
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer     | Technology                                        |
+| --------- | ------------------------------------------------- |
+| Frontend  | Next.js 15 (App Router), TypeScript, Tailwind CSS |
+| Backend   | Next.js API Routes                                |
+| Database  | MongoDB Atlas (Mongoose)                          |
+| Real-time | Socket.IO hosted on Railway                       |
+| Auth      | JWT (jose), bcryptjs                              |
+| Email     | Resend API                                        |
+| Hosting   | Vercel (frontend) + Railway (socket server)       |
+
+---
+
+## 🗂️ Project Structure
+
+```
+inkblot/
+├── app/
+│   ├── page.tsx                  # Login / Signup page
+│   ├── lobby/                    # Lobby with Quick Play, Create Room, Word of Day
+│   ├── room/[id]/                # Game room (canvas, chat, leaderboard)
+│   ├── admin/                    # Admin panel
+│   ├── reset-password/           # Password reset page
+│   └── api/
+│       ├── auth/                 # login, register, logout, session, forgot/reset password
+│       ├── rooms/                # create, join, quick play
+│       ├── friends/              # friend requests
+│       ├── invites/              # game invites
+│       ├── wordofday/            # public word of day endpoint
+│       └── admin/                # users, word of day management
+├── models/                       # Mongoose models
+├── lib/                          # JWT, auth helpers, DB connection, socket client
+├── hooks/                        # useInactivityLogout
+├── components/                   # FriendsPanel, AddFriendButton
+└── socket-server/
+    └── index.js                  # Standalone Socket.IO server (Node.js)
+```
+
+---
+
+## ⚙️ Setup & Running Locally
+
+### Prerequisites
+
+- Node.js 18+
+- MongoDB Atlas connection string
+- A Resend account (for password reset emails)
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Shahmeer-Atif/WEB_Project.git
+cd WEB_Project
+```
 
 ### 2. Install dependencies
 
 ```bash
-# Next.js app
+# Frontend
 npm install
 
 # Socket server
@@ -28,111 +142,68 @@ npm install
 cd ..
 ```
 
-### 3. Set up environment variables
+### 3. Environment variables
 
-```bash
-cp .env.example .env.local
+Create `.env.local` in the root:
+
+```env
+MONGODB_URI=your_mongodb_atlas_uri
+JWT_SECRET=your_secret_key_min_32_chars
+NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+RESEND_API_KEY=your_resend_api_key
 ```
 
-Open `.env.local` and fill in:
+Create `.env` in `socket-server/`:
 
-| Variable                 | Where to get it                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------- |
-| `MONGODB_URI`            | MongoDB Atlas → Connect → Drivers                                               |
-| `JWT_SECRET`             | Run: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `NEXT_PUBLIC_SOCKET_URL` | `http://localhost:3001` for development                                         |
-| `FRONTEND_URL`           | `http://localhost:3000` for development                                         |
+```env
+FRONTEND_URL=http://localhost:3000
+PORT=3001
+```
 
-### 4. Set up MongoDB Atlas
-
-1. Create a free M0 cluster at [cloud.mongodb.com](https://cloud.mongodb.com)
-2. Create a database user with read/write access
-3. Add your IP to Network Access (or allow all IPs: `0.0.0.0/0`)
-4. Copy the connection string into `MONGODB_URI` in `.env.local`
-
-### 5. Run the development servers
-
-Open **two terminal tabs**:
-
-**Tab 1 — Next.js app:**
+### 4. Run the app
 
 ```bash
+# Terminal 1 — Next.js frontend
 npm run dev
-# Runs on http://localhost:3000
-```
 
-**Tab 2 — Socket server:**
-
-```bash
+# Terminal 2 — Socket server
 cd socket-server
 node index.js
-# Runs on http://localhost:3001
 ```
 
-### 6. Create an admin account
-
-1. Register normally at `localhost:3000`
-2. Go to MongoDB Atlas → Browse Collections → `inkblot` → `users`
-3. Find your user → Edit → change `role` from `"user"` to `"admin"` → Save
-4. Log out and back in
-5. Visit `localhost:3000/admin`
+Open http://localhost:3000
 
 ---
 
-## Project Structure
+## 🎮 How to Play
 
-```
-inkblot/
-├── app/
-│   ├── page.tsx              # Landing + Auth
-│   ├── lobby/                # Lobby page
-│   ├── room/[id]/            # Game room (real-time)
-│   ├── admin/                # Admin dashboard
-│   ├── 403/                  # Forbidden page
-│   └── api/
-│       ├── auth/             # register, login, logout, session
-│       └── admin/users/      # user management
-├── components/
-├── lib/
-│   ├── db.ts                 # MongoDB connection
-│   ├── auth.ts               # Cookie + bcrypt helpers
-│   └── jwt.ts                # JWT sign/verify (Edge-safe)
-├── models/
-│   └── User.ts               # Mongoose user schema
-├── socket-server/
-│   └── index.js              # Standalone Socket.IO server
-├── middleware.ts              # Route protection
-└── .env.example              # Environment variable template
-```
+1. **Sign up / Log in** at the landing page
+2. Click **Quick Play** to jump into a room instantly, or **Create Room** to set custom rules
+3. When it's your turn, draw the word shown in the yellow bar at the top
+4. When others are drawing, type your guesses in the chat
+5. Guessing correctly earns points based on how fast you guessed
+6. The player with the most points after all rounds wins 🏆
 
 ---
 
-## Features
+## 🔐 Admin Access
 
-- 🔐 JWT authentication with bcrypt password hashing
-- 👑 Role-based access control (admin / user)
-- 🎨 Real-time collaborative drawing canvas
-- 💬 Live chat and guessing with first-guess fairness
-- ⏱️ Round timer with automatic turn rotation
-- 🏆 Live leaderboard with score tracking
-- 📊 Admin dashboard — manage users, roles, word bank
-- 📱 Responsive design
+Admins can access `/admin` from the lobby nav. Admin accounts are set via the User Management panel. Admin features include user management, Word of the Day scheduling, and word bank editing.
 
 ---
 
-## Rubric Coverage
+## 📦 Deployment
 
-| Criterion               | Implementation                        |
-| ----------------------- | ------------------------------------- |
-| Auth end-to-end         | `app/api/auth/` routes                |
-| bcrypt hashing          | `lib/auth.ts` — 12 salt rounds        |
-| No plain-text passwords | `select: false` on passwordHash field |
-| Secure hash comparison  | `bcrypt.compare()`                    |
-| Two roles (admin/user)  | User model enum + middleware          |
-| Admin route protection  | `middleware.ts` + server-side check   |
-| Admin user management   | `app/api/admin/users/` PATCH route    |
-| Client-side validation  | `app/page.tsx` validators             |
-| Server-side validation  | All API routes sanitize inputs        |
-| Session management      | httpOnly JWT cookie, 7-day expiry     |
+| Service     | Config                                                                 |
+| ----------- | ---------------------------------------------------------------------- |
+| **Vercel**  | Root `/`, branch `main`, env vars set in dashboard                     |
+| **Railway** | Root `socket-server/`, branch `main`, `PORT` env var set automatically |
 
+Both services auto-deploy on every push to `main`.
 
+---
+
+## 📄 License
+
+Built for academic purposes — Web Programming course, FAST-NUCES Islamabad.
